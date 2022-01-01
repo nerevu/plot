@@ -1,17 +1,19 @@
-import {axisTop, axisBottom, axisRight, axisLeft, create, format, utcFormat} from "d3";
+import {axisTop, axisBottom, axisRight, axisLeft, create, format, utcFormat, utcDay, timeDay, timeHour, utcHour, timeMinute, utcMinute, timeMonth, utcMonth, timeWeek, utcWeek, timeYear, utcYear, timeSecond, utcSecond} from "d3";
+import {inferFontVariant} from "./axes.js";
 import {formatIsoDate} from "./format.js";
 import {boolean, take, number, string, keyword, maybeKeyword, constant, isTemporal} from "./mark.js";
+import {isTemporalScale} from "./scales.js";
 import {impliedString} from "./style.js";
 
 export class AxisX {
-  constructor({
+  constructor(scale, {
     name = "x",
     axis,
     ticks,
     tickSize = name === "fx" ? 0 : 6,
     tickPadding = tickSize === 0 ? 9 : 3,
     tickFormat,
-    fontVariant,
+    fontVariant = inferFontVariant(scale),
     grid,
     label,
     labelAnchor,
@@ -21,7 +23,7 @@ export class AxisX {
   } = {}) {
     this.name = name;
     this.axis = keyword(axis, "axis", ["top", "bottom"]);
-    this.ticks = ticks;
+    this.ticks = maybeTicks(ticks, scale);
     this.tickSize = number(tickSize);
     this.tickPadding = number(tickPadding);
     this.tickFormat = tickFormat;
@@ -91,14 +93,14 @@ export class AxisX {
 }
 
 export class AxisY {
-  constructor({
+  constructor(scale, {
     name = "y",
     axis,
     ticks,
     tickSize = name === "fy" ? 0 : 6,
     tickPadding = tickSize === 0 ? 9 : 3,
     tickFormat,
-    fontVariant,
+    fontVariant = inferFontVariant(scale),
     grid,
     label,
     labelAnchor,
@@ -108,7 +110,7 @@ export class AxisY {
   } = {}) {
     this.name = name;
     this.axis = keyword(axis, "axis", ["left", "right"]);
-    this.ticks = ticks;
+    this.ticks = maybeTicks(ticks, scale);
     this.tickSize = number(tickSize);
     this.tickPadding = number(tickPadding);
     this.tickFormat = tickFormat;
@@ -235,6 +237,23 @@ function createAxis(axis, scale, {ticks, tickSize, tickPadding, tickFormat}) {
 }
 
 const radians = Math.PI / 180;
+
+function maybeTicks(ticks, scale) {
+  if (isTemporalScale(scale) && typeof ticks === "string") {
+    const local = scale.type === "time";
+    switch (`${ticks}`.toLowerCase()) {
+      case "year": return local ? timeYear : utcYear;
+      case "month": return local ? timeMonth : utcMonth;
+      case "week": return local ? timeWeek : utcWeek;
+      case "day": return local ? timeDay : utcDay;
+      case "hour": return local ? timeHour : utcHour;
+      case "minute": return local ? timeMinute : utcMinute;
+      case "second": return local ? timeSecond : utcSecond;
+      default: throw new Error(`unknown ticks method: ${ticks}`);
+    }
+  }
+  return ticks;
+}
 
 function maybeTickRotate(g, rotate) {
   if (!(rotate = +rotate)) return;
