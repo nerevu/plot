@@ -93,18 +93,24 @@ function legendItems(scale, {
         --swatchHeight: ${+swatchHeight}px;
       `);
 
-  const palette = label
-      ? swatches.call(div => div.append("p")
-          .text(label)
-          .style("font-weight", "bold")
-          .style("width", "100%"))
+  const hasTitle = label != null && label !== "";
+  const palette = hasTitle
+      ? swatches.call(div => div.append("div")
+          .attr("class", `${className}-title`)
+          .text(label))
         .append("div")
       : swatches;
+  palette.classed(`${className}-palette`, true);
 
-  let extraStyle;
+  let extraStyle = hasTitle ? `
+      .${className}-title {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.4em;
+      }` : "";
 
   if (columns != null) {
-    extraStyle = `
+    extraStyle += `
       .${className}-swatch {
         display: flex;
         align-items: center;
@@ -134,10 +140,10 @@ function legendItems(scale, {
             .attr("title", tickFormat)
             .text(tickFormat));
   } else {
-    extraStyle = `
-      .${className} {
+    extraStyle += `
+      .${className}-palette {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         min-height: 33px;
         flex-wrap: wrap;
       }

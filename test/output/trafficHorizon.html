@@ -19,9 +19,15 @@
         background: var(--color);
       }
 
-      .plot {
+      .plot-title {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.4em;
+      }
+
+      .plot-palette {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         min-height: 33px;
         flex-wrap: wrap;
       }
@@ -31,7 +37,9 @@
         align-items: center;
         margin-right: 1em;
       }
-    </style><span class="plot-swatch" style="--color: #eff3ff;">≥0</span><span class="plot-swatch" style="--color: #bdd7e7;">≥2,000</span><span class="plot-swatch" style="--color: #6baed6;">≥4,000</span><span class="plot-swatch" style="--color: #3182bd;">≥6,000</span><span class="plot-swatch" style="--color: #08519c;">≥8,000</span>
+    </style>
+    <div class="plot-title">Traffic (vehicles/hour)</div>
+    <div class="plot-palette"><span class="plot-swatch" style="--color: #eff3ff;">≥0</span><span class="plot-swatch" style="--color: #bdd7e7;">≥2,000</span><span class="plot-swatch" style="--color: #6baed6;">≥4,000</span><span class="plot-swatch" style="--color: #3182bd;">≥6,000</span><span class="plot-swatch" style="--color: #08519c;">≥8,000</span></div>
   </div><svg class="plot-2" fill="currentColor" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" width="960" height="1100" viewBox="0 0 960 1100" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <style>
       .plot-2 {

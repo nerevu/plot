@@ -18,6 +18,12 @@
       background: var(--color);
     }
 
+    .plot-title {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.4em;
+    }
+
     .plot-swatch {
       display: flex;
       align-items: center;
@@ -35,8 +41,8 @@
       text-overflow: ellipsis;
     }
   </style>
-  <p style="font-weight: bold; width: 100%;">Industry</p>
-  <div style="columns: 180px;">
+  <div class="plot-title">Industry</div>
+  <div class="plot-palette" style="columns: 180px;">
     <div class="plot-swatch" style="--color: #4e79a7;">
       <div class="plot-label" title="Wholesale and Retail Trade">Wholesale and Retail Trade</div>
     </div>

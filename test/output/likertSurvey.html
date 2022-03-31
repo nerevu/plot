@@ -19,9 +19,15 @@
         background: var(--color);
       }
 
-      .plot {
+      .plot-title {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.4em;
+      }
+
+      .plot-palette {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         min-height: 33px;
         flex-wrap: wrap;
       }
@@ -32,8 +38,8 @@
         margin-right: 1em;
       }
     </style>
-    <p style="font-weight: bold; width: 100%;">Response</p>
-    <div><span class="plot-swatch" style="--color: #ca0020;">Strongly Disagree</span><span class="plot-swatch" style="--color: #f4a582;">Disagree</span><span class="plot-swatch" style="--color: #f7f7f7;">Neutral</span><span class="plot-swatch" style="--color: #92c5de;">Agree</span><span class="plot-swatch" style="--color: #0571b0;">Strongly Agree</span></div>
+    <div class="plot-title">Response</div>
+    <div class="plot-palette"><span class="plot-swatch" style="--color: #ca0020;">Strongly Disagree</span><span class="plot-swatch" style="--color: #f4a582;">Disagree</span><span class="plot-swatch" style="--color: #f7f7f7;">Neutral</span><span class="plot-swatch" style="--color: #92c5de;">Agree</span><span class="plot-swatch" style="--color: #0571b0;">Strongly Agree</span></div>
   </div><svg class="plot-2" fill="currentColor" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" width="640" height="160" viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <style>
       .plot-2 {

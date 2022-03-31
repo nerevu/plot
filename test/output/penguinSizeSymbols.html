@@ -23,9 +23,15 @@
         stroke-opacity: 1;
       }
 
-      .plot {
+      .plot-title {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.4em;
+      }
+
+      .plot-palette {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         min-height: 33px;
         flex-wrap: wrap;
       }
@@ -36,8 +42,8 @@
         margin-right: 1em;
       }
     </style>
-    <p style="font-weight: bold; width: 100%;">species</p>
-    <div><span class="plot-swatch"><svg viewBox="-8 -8 16 16" stroke="#4e79a7" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <div class="plot-title">species</div>
+    <div class="plot-palette"><span class="plot-swatch"><svg viewBox="-8 -8 16 16" stroke="#4e79a7" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
           <path d="M4.5,0A4.5,4.5,0,1,1,-4.5,0A4.5,4.5,0,1,1,4.5,0"></path>
         </svg>Adelie</span><span class="plot-swatch"><svg viewBox="-8 -8 16 16" stroke="#f28e2c" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
           <path d="M-6.873088769818877,0L6.873088769818877,0M0,6.873088769818877L0,-6.873088769818877"></path>
