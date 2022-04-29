@@ -109,6 +109,7 @@ function inferDomain(channels) {
     if (value === undefined) continue;
     for (const v of value) values.add(v);
   }
+  if (values.size > 10e3) throw new Error("This ordinal domain would have more than 10,000 values. If this is intentional, set the domain explicitly.");
   return sort(values, ascendingDefined);
 }
 
