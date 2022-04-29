@@ -13,7 +13,7 @@ export const ordinalImplicit = Symbol("ordinal");
 
 export function ScaleO(scale, channels, {
   type,
-  domain = inferDomain(channels),
+  domain = inferDomain(channels, type),
   range,
   reverse,
   hint
@@ -31,7 +31,7 @@ export function ScaleO(scale, channels, {
 
 export function ScaleOrdinal(key, channels, {
   type,
-  domain = inferDomain(channels),
+  domain = inferDomain(channels, type),
   range,
   scheme,
   unknown,
@@ -102,14 +102,14 @@ function maybeRound(scale, channels, options) {
   return scale;
 }
 
-function inferDomain(channels) {
+function inferDomain(channels, type) {
   const values = new InternSet();
   for (const {value, domain} of channels) {
     if (domain !== undefined) return domain();
     if (value === undefined) continue;
     for (const v of value) values.add(v);
   }
-  if (values.size > 10e3) throw new Error("This ordinal domain would have more than 10,000 values. If this is intentional, set the domain explicitly.");
+  if (values.size > 10e3 && ["point", "band"].includes(type)) throw new Error("This ordinal domain would have more than 10,000 values. If this is intentional, set the domain explicitly.");
   return sort(values, ascendingDefined);
 }
 
