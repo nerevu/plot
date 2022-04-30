@@ -2,7 +2,7 @@ import {InternSet, quantize, reverse as reverseof, sort, symbolsFill, symbolsStr
 import {scaleBand, scaleOrdinal, scalePoint, scaleImplicit} from "d3";
 import {ascendingDefined} from "../defined.js";
 import {maybeSymbol, isNoneish} from "../options.js";
-import {registry, color, symbol} from "./index.js";
+import {registry, color, position, symbol} from "./index.js";
 import {maybeBooleanRange, ordinalScheme, quantitativeScheme} from "./schemes.js";
 
 // This denotes an implicitly ordinal color scale: the scale type was not set,
@@ -11,9 +11,10 @@ import {maybeBooleanRange, ordinalScheme, quantitativeScheme} from "./schemes.js
 // of this by setting the type explicitly.
 export const ordinalImplicit = Symbol("ordinal");
 
-export function ScaleO(scale, channels, {
+function ScaleO(scale, channels, {
   type,
-  domain = inferDomain(channels, type),
+  key,
+  domain = inferDomain(channels, key),
   range,
   reverse,
   hint
@@ -31,7 +32,7 @@ export function ScaleO(scale, channels, {
 
 export function ScaleOrdinal(key, channels, {
   type,
-  domain = inferDomain(channels, type),
+  domain = inferDomain(channels, key),
   range,
   scheme,
   unknown,
@@ -60,7 +61,7 @@ export function ScaleOrdinal(key, channels, {
     }
   }
   if (unknown === scaleImplicit) throw new Error("implicit unknown is not supported");
-  return ScaleO(scaleOrdinal().unknown(unknown), channels, {...options, type, domain, range, hint});
+  return ScaleO(scaleOrdinal().unknown(unknown), channels, {...options, key, type, domain, range, hint});
 }
 
 export function ScalePoint(key, channels, {
@@ -73,7 +74,8 @@ export function ScalePoint(key, channels, {
       .align(align)
       .padding(padding),
     channels,
-    options
+    options,
+    key
   );
 }
 
@@ -90,26 +92,27 @@ export function ScaleBand(key, channels, {
       .paddingInner(paddingInner)
       .paddingOuter(paddingOuter),
     channels,
-    options
+    options,
+    key
   );
 }
 
-function maybeRound(scale, channels, options) {
+function maybeRound(scale, channels, options, key) {
   let {round} = options;
   if (round !== undefined) scale.round(round = !!round);
-  scale = ScaleO(scale, channels, options);
+  scale = ScaleO(scale, channels, {...options, key});
   scale.round = round; // preserve for autoScaleRound
   return scale;
 }
 
-function inferDomain(channels, type) {
+function inferDomain(channels, key) {
   const values = new InternSet();
   for (const {value, domain} of channels) {
     if (domain !== undefined) return domain();
     if (value === undefined) continue;
     for (const v of value) values.add(v);
   }
-  if (values.size > 10e3 && ["point", "band"].includes(type)) throw new Error("This ordinal domain would have more than 10,000 values. If this is intentional, set the domain explicitly.");
+  if (values.size > 10e3 && registry.get(key) === position) throw new Error("This position domain would have more than 10,000 ordinal values. If this is intentional, set the domain explicitly.");
   return sort(values, ascendingDefined);
 }
 
