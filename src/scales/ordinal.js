@@ -11,9 +11,8 @@ import {maybeBooleanRange, ordinalScheme, quantitativeScheme} from "./schemes.js
 // of this by setting the type explicitly.
 export const ordinalImplicit = Symbol("ordinal");
 
-function ScaleO(scale, channels, {
+function ScaleO(key, scale, channels, {
   type,
-  key,
   domain = inferDomain(channels, key),
   range,
   reverse,
@@ -61,7 +60,7 @@ export function ScaleOrdinal(key, channels, {
     }
   }
   if (unknown === scaleImplicit) throw new Error("implicit unknown is not supported");
-  return ScaleO(scaleOrdinal().unknown(unknown), channels, {...options, key, type, domain, range, hint});
+  return ScaleO(key, scaleOrdinal().unknown(unknown), channels, {...options, type, domain, range, hint});
 }
 
 export function ScalePoint(key, channels, {
@@ -100,7 +99,7 @@ export function ScaleBand(key, channels, {
 function maybeRound(scale, channels, options, key) {
   let {round} = options;
   if (round !== undefined) scale.round(round = !!round);
-  scale = ScaleO(scale, channels, {...options, key});
+  scale = ScaleO(key, scale, channels, options);
   scale.round = round; // preserve for autoScaleRound
   return scale;
 }
