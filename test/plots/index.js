@@ -127,6 +127,7 @@ export {default as randomBinsXY} from "./random-bins-xy.js";
 export {default as randomQuantile} from "./random-quantile.js";
 export {default as randomWalk} from "./random-walk.js";
 export {default as recession} from "./recession.js";
+export {default as recessionHalos} from "./recession-halos.js";
 export {default as rectBand} from "./rect-band.js";
 export {default as seattlePrecipitationRule} from "./seattle-precipitation-rule.js";
 export {default as seattleTemperatureBand} from "./seattle-temperature-band.js";
