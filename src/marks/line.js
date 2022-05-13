@@ -2,7 +2,7 @@ import {create, line as shapeLine} from "d3";
 import {Curve} from "../curve.js";
 import {Mark} from "../plot.js";
 import {indexOf, identity, maybeTuple, maybeZ} from "../options.js";
-import {applyDirectStyles, applyIndirectStyles, applyTransform, applyGroupedChannelStyles, offset, groupIndex} from "../style.js";
+import {applyDirectStyles, applyIndirectStyles, applyTransform, applyGroupedChannelStyles, offset, groupIndex, maybeHalo} from "../style.js";
 import {maybeDenseIntervalX, maybeDenseIntervalY} from "../transforms/bin.js";
 import {applyGroupedMarkers, markers} from "./marker.js";
 
@@ -18,7 +18,7 @@ const defaults = {
 
 export class Line extends Mark {
   constructor(data, options = {}) {
-    const {x, y, z, curve, tension} = options;
+    const {x, y, z, curve, tension, halo} = options;
     super(
       data,
       [
@@ -31,6 +31,7 @@ export class Line extends Mark {
     );
     this.z = z;
     this.curve = Curve(curve, tension);
+    this.halo = maybeHalo(halo);
     markers(this, options);
   }
   filter(index) {
@@ -38,7 +39,7 @@ export class Line extends Mark {
   }
   render(I, {x, y}, channels, dimensions) {
     const {x: X, y: Y} = channels;
-    const {dx, dy} = this;
+    const {dx, dy, halo} = this;
     return create("svg:g")
         .call(applyIndirectStyles, this, dimensions)
         .call(applyTransform, x, y, offset + dx, offset + dy)
@@ -53,7 +54,19 @@ export class Line extends Mark {
               .curve(this.curve)
               .defined(i => i >= 0)
               .x(i => X[i])
-              .y(i => Y[i])))
+              .y(i => Y[i]))
+            .call(!halo ? () => {} : path => path.clone(true)
+              .each(function() {
+                // a halo must be inserted before the first aesthetic segment of the same line
+                let prev = this;
+                do prev = prev.previousSibling; while (prev.__data__.segment);
+                this.parentNode.insertBefore(this, prev);
+                this.setAttribute("marker-start", null);
+                this.setAttribute("marker-mid", null);
+                this.setAttribute("marker-end", null);
+              })
+              .call(applyIndirectStyles, halo, dimensions)
+              .call(applyDirectStyles, halo)))
       .node();
   }
 }

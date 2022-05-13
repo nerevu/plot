@@ -1095,6 +1095,8 @@ Points along the line are connected in input order. Likewise, if there are multi
 
 The line mark supports [curve options](#curves) to control interpolation between points, and [marker options](#markers) to add a marker (such as a dot or an arrowhead) on each of the control points. If any of the *x* or *y* values are invalid (undefined, null, or NaN), the line will be interrupted, resulting in a break that divides the line shape into multiple segments. (See [d3-shape’s *line*.defined](https://github.com/d3/d3-shape/blob/master/README.md#line_defined) for more.) If a line segment consists of only a single point, it may appear invisible unless rendered with rounded or square line caps. In addition, some curves such as *cardinal-open* only render a visible segment if it contains multiple points.
 
+The line mark supports [halo options](#halo) to help separate multiple lines.
+
 #### Plot.line(*data*, *options*)
 
 ```js
@@ -2179,6 +2181,21 @@ The following named curve methods are supported:
 If *curve* is a function, it will be invoked with a given *context* in the same fashion as a [D3 curve factory](https://github.com/d3/d3-shape/blob/master/README.md#custom-curves).
 
 The tension option only has an effect on cardinal and Catmull–Rom splines (*cardinal*, *cardinal-open*, *cardinal-closed*, *catmull-rom*, *catmull-rom-open*, and *catmull-rom-closed*). For cardinal splines, it corresponds to [tension](https://github.com/d3/d3-shape/blob/master/README.md#curveCardinal_tension); for Catmull–Rom splines, [alpha](https://github.com/d3/d3-shape/blob/master/README.md#curveCatmullRom_alpha).
+
+
+## Halo
+
+The line mark support halo options, allowing to better separate multiple lines by interspersing another, usually white and thick, line, below each curve (in the case of variable aesthetics, the halo segments for a line are all placed below the first segment of the line). The halo options can be specified as:
+
+* *true* - a halo with default styles
+* a number - a halo with default styles and this stroke-width 
+* a color string - a halo with default styles and this stroke color
+* an object that may specify halo options
+
+Unless specified in the halo options, the halo line inherits the mark’s styles (if specified as constants), except for the following:
+* *stroke* - the halo’s stroke color, defaults to white
+* *strokeDasharray* - the halo’s stroke dash array, defaults to none
+* *strokeWidth* - the halo’s stroke width, defaults to 2 + 1.5 times the line’s stroke width (and, in the case of variable aesthetics, 2 + 1.5 times the line segment’s width)
 
 ## Markers
 

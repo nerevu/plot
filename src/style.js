@@ -1,7 +1,7 @@
 import {group, namespaces} from "d3";
 import {defined, nonempty} from "./defined.js";
 import {formatDefault} from "./format.js";
-import {string, number, maybeColorChannel, maybeNumberChannel, isNoneish, isNone, isRound, keyof} from "./options.js";
+import {string, number, maybeColorChannel, maybeNumberChannel, isNoneish, isNone, isRound, keyof, isColor} from "./options.js";
 import {warn} from "./warnings.js";
 
 export const offset = typeof window !== "undefined" && window.devicePixelRatio > 1 ? 0 : 0.5;
@@ -201,6 +201,7 @@ export function* groupIndex(I, position, {z}, channels) {
   for (const G of Z ? groupZ(I, Z, z) : [I]) {
     let Ag; // the A-values (aesthetics) of the current group, if any
     let Gg; // the current group index (a subset of G, and I), if any
+    let segment = 0; // counter of sub-groups for the current z
     out: for (const i of G) {
 
       // If any channel has an undefined value for this index, skip it.
@@ -214,7 +215,7 @@ export function* groupIndex(I, position, {z}, channels) {
       // Otherwise, if this is a new group, record the aesthetics for this
       // group. Yield the current group and start a new one.
       if (Ag === undefined) {
-        if (Gg) yield Gg;
+        if (Gg) yield Object.assign(Gg, {segment: segment++});
         Ag = A.map(c => keyof(c[i])), Gg = [i];
         continue;
       }
@@ -226,7 +227,7 @@ export function* groupIndex(I, position, {z}, channels) {
       for (let j = 0; j < A.length; ++j) {
         const k = keyof(A[j][i]);
         if (k !== Ag[j]) {
-          yield Gg;
+          yield Object.assign(Gg, {segment: segment++});
           Ag = A.map(c => keyof(c[i])), Gg = [i];
           continue out;
         }
@@ -234,7 +235,7 @@ export function* groupIndex(I, position, {z}, channels) {
     }
 
     // Yield the current group, if any.
-    if (Gg) yield Gg;
+    if (Gg) yield Object.assign(Gg, {segment});
   }
 }
 
@@ -340,4 +341,29 @@ export function applyFrameAnchor({frameAnchor}, {width, height, marginTop, margi
     /left$/.test(frameAnchor) ? marginLeft : /right$/.test(frameAnchor) ? width - marginRight : (marginLeft + width - marginRight) / 2,
     /^top/.test(frameAnchor) ? marginTop : /^bottom/.test(frameAnchor) ? height - marginBottom : (marginTop + height - marginBottom) / 2
   ];
+}
+
+export function maybeHalo(halo) {
+  if (!halo) return false;
+  const defaults = {
+    stroke: "white",
+    strokeDasharray: "none",
+    strokeWidth: function() {
+      const a = this.nextSibling.getAttribute("stroke-width");
+      return 2 + 1.5 * (a === null ? (this.parentElement.getAttribute("stroke-width") || 1) : a);
+    }
+  };
+  switch (typeof halo) {
+    case "boolean":
+      return defaults;
+    case "number":
+      return {...defaults, strokeWidth: halo};
+    case "string":
+      if (isColor(halo)) return {...defaults, stroke: halo};
+      break;
+    case "object":
+      if (halo[Symbol.iterator]) throw new Error(`Unsupported halo definition: ${halo}`);
+      return {...defaults, ...halo};
+  }
+  throw new Error(`Unsupported halo definition: ${halo}`);
 }
