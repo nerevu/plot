@@ -40,6 +40,7 @@ export class Line extends Mark {
   render(I, {x, y}, channels, dimensions) {
     const {x: X, y: Y} = channels;
     const {dx, dy, halo} = this;
+    let haloInsertion;
     return create("svg:g")
         .call(applyIndirectStyles, this, dimensions)
         .call(applyTransform, x, y, offset + dx, offset + dy)
@@ -58,9 +59,8 @@ export class Line extends Mark {
             .call(!halo ? () => {} : path => path.clone(true)
               .each(function() {
                 // a halo must be inserted before the first aesthetic segment of the same line
-                let prev = this;
-                do prev = prev.previousSibling; while (prev.__data__.segment);
-                this.parentNode.insertBefore(this, prev);
+                if (!this.previousSibling.__data__.segment) haloInsertion = this.previousSibling;
+                this.parentNode.insertBefore(this, haloInsertion);
                 this.setAttribute("marker-start", null);
                 this.setAttribute("marker-mid", null);
                 this.setAttribute("marker-end", null);
