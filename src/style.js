@@ -215,7 +215,7 @@ export function* groupIndex(I, position, {z}, channels) {
       // Otherwise, if this is a new group, record the aesthetics for this
       // group. Yield the current group and start a new one.
       if (Ag === undefined) {
-        if (Gg) yield Object.assign(Gg, {segment: segment++});
+        if (Gg) yield segment++ ? Object.assign(Gg, {segment}) : Gg;
         Ag = A.map(c => keyof(c[i])), Gg = [i];
         continue;
       }
@@ -227,7 +227,7 @@ export function* groupIndex(I, position, {z}, channels) {
       for (let j = 0; j < A.length; ++j) {
         const k = keyof(A[j][i]);
         if (k !== Ag[j]) {
-          yield Object.assign(Gg, {segment: segment++});
+          yield segment++ ? Object.assign(Gg, {segment}) : Gg;
           Ag = A.map(c => keyof(c[i])), Gg = [i];
           continue out;
         }
@@ -235,7 +235,7 @@ export function* groupIndex(I, position, {z}, channels) {
     }
 
     // Yield the current group, if any.
-    if (Gg) yield Object.assign(Gg, {segment});
+    if (Gg) yield segment++ ? Object.assign(Gg, {segment}) : Gg;
   }
 }
 
