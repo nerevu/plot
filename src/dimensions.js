@@ -12,8 +12,6 @@ export function Dimensions(
   },
   {
     width = 640,
-    dataAspectRatio,
-    height,
     facet: {
       margin: facetMargin,
       marginTop: facetMarginTop = facetMargin !== undefined ? facetMargin : fxAxis === "top" ? 30 : 0,
@@ -25,12 +23,14 @@ export function Dimensions(
     marginTop = margin !== undefined ? margin : Math.max((xAxis === "top" ? 30 : 0) + facetMarginTop, yAxis || fyAxis ? 20 : 0.5 - offset),
     marginRight = margin !== undefined ? margin : Math.max((yAxis === "right" ? 40 : 0) + facetMarginRight, xAxis || fxAxis ? 20 : 0.5 + offset),
     marginBottom = margin !== undefined ? margin : Math.max((xAxis === "bottom" ? 30 : 0) + facetMarginBottom, yAxis || fyAxis ? 20 : 0.5 + offset),
-    marginLeft = margin !== undefined ? margin : Math.max((yAxis === "left" ? 40 : 0) + facetMarginLeft, xAxis || fxAxis ? 20 : 0.5 - offset)
+    marginLeft = margin !== undefined ? margin : Math.max((yAxis === "left" ? 40 : 0) + facetMarginLeft, xAxis || fxAxis ? 20 : 0.5 - offset),
+    dataAspectRatio,
+    height = autoHeight(scales, {width, marginLeft, marginRight, marginTop, marginBottom}, dataAspectRatio)
   } = {}
 ) {
   return {
     width,
-    height: height !== undefined ? height : autoHeight(scales, {width, marginLeft, marginRight, marginTop, marginBottom}, dataAspectRatio),
+    height,
     marginTop,
     marginRight,
     marginBottom,
