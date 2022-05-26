@@ -12,7 +12,7 @@ export function Dimensions(
   },
   {
     width = 640,
-    daspect,
+    dataAspectRatio,
     height,
     facet: {
       margin: facetMargin,
@@ -30,7 +30,7 @@ export function Dimensions(
 ) {
   return {
     width,
-    height: height !== undefined ? height : autoHeight(scales, {width, marginLeft, marginRight, marginTop, marginBottom}, daspect),
+    height: height !== undefined ? height : autoHeight(scales, {width, marginLeft, marginRight, marginTop, marginBottom}, dataAspectRatio),
     marginTop,
     marginRight,
     marginBottom,
@@ -42,17 +42,17 @@ export function Dimensions(
   };
 }
 
-function autoHeight({x, y, fy, fx}, {width, marginLeft, marginRight, marginTop, marginBottom}, daspect) {
+function autoHeight({x, y, fy, fx}, {width, marginLeft, marginRight, marginTop, marginBottom}, dataAspectRatio) {
   const nfy = fy ? fy.scale.domain().length : 1;
   const ny = y ? (isOrdinalScale(y) ? y.scale.domain().length : Math.max(7, 17 / nfy)) : 1;
 
   // If a data aspect ratio is given, tweak the height to match
-  if (daspect != null && daspect !== false) {
-    if (!(isFinite(daspect) && daspect > 0)) throw new Error(`invalid data aspect ratio: ${daspect}`);
+  if (dataAspectRatio = +dataAspectRatio) {
+    if (!(isFinite(dataAspectRatio) && dataAspectRatio > 0)) throw new Error(`invalid data aspect ratio: ${dataAspectRatio}`);
     if (!["utc", "time", "linear"].includes(x?.type) || !["utc", "time", "linear"].includes(y?.type)) {
-      warn(`invalid x/y scale types for the daspect option: ${x?.type}/${y?.type}`);
+      warn(`invalid x/y scale types for the dataAspectRatio option: ${x?.type}/${y?.type}`);
     } else {
-      const ratio = Math.abs((y.domain[1] - y.domain[0]) / (x.domain[1] - x.domain[0]) / daspect);
+      const ratio = Math.abs((y.domain[1] - y.domain[0]) / (x.domain[1] - x.domain[0]) / dataAspectRatio);
       const trueWidth = (fx ? fx.scale.bandwidth() : 1) * (width - marginLeft - marginRight) - x.insetLeft - x.insetRight;
       return (ratio * trueWidth + y.insetTop + y.insetBottom) / (fy ? fy.scale.bandwidth() : 1) + marginTop + marginBottom;
     }
