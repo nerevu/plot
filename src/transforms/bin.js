@@ -1,31 +1,42 @@
 import {bin as binner, extent, thresholdFreedmanDiaconis, thresholdScott, thresholdSturges, utcTickInterval} from "d3";
-import {valueof, range, identity, maybeLazyChannel, maybeTuple, maybeColor, maybeValue, mid, labelof, isTemporal} from "../mark.js";
-import {offset} from "../style.js";
+import {valueof, range, identity, maybeColumn, maybeTuple, maybeColorChannel, maybeValue, mid, labelof, isTemporal} from "../options.js";
+import {coerceDate, coerceNumber} from "../scales.js";
 import {basic} from "./basic.js";
-import {maybeEvaluator, maybeGroup, maybeOutput, maybeOutputs, maybeReduce, maybeSort, maybeSubgroup, reduceCount, reduceIdentity} from "./group.js";
+import {hasOutput, maybeEvaluator, maybeGroup, maybeOutput, maybeOutputs, maybeReduce, maybeSort, maybeSubgroup, reduceCount, reduceFirst, reduceIdentity} from "./group.js";
+import {maybeInsetX, maybeInsetY} from "./inset.js";
+import {maybeInterval} from "./interval.js";
 
 // Group on {z, fill, stroke}, then optionally on y, then bin x.
-export function binX(outputs = {y: "count"}, {inset, insetLeft, insetRight, ...options} = {}) {
-  let {x, y} = options;
-  x = maybeBinValue(x, options, identity);
-  ([insetLeft, insetRight] = maybeInset(inset, insetLeft, insetRight));
-  return binn(x, null, null, y, outputs, {inset, insetLeft, insetRight, ...options});
+export function binX(outputs = {y: "count"}, options = {}) {
+  ([outputs, options] = mergeOptions(outputs, options));
+  const {x, y} = options;
+  return binn(maybeBinValue(x, options, identity), null, null, y, outputs, maybeInsetX(options));
 }
 
 // Group on {z, fill, stroke}, then optionally on x, then bin y.
-export function binY(outputs = {x: "count"}, {inset, insetTop, insetBottom, ...options} = {}) {
-  let {x, y} = options;
-  y = maybeBinValue(y, options, identity);
-  ([insetTop, insetBottom] = maybeInset(inset, insetTop, insetBottom));
-  return binn(null, y, x, null, outputs, {inset, insetTop, insetBottom, ...options});
+export function binY(outputs = {x: "count"}, options = {}) {
+  ([outputs, options] = mergeOptions(outputs, options));
+  const {x, y} = options;
+  return binn(null, maybeBinValue(y, options, identity), x, null, outputs, maybeInsetY(options));
 }
 
 // Group on {z, fill, stroke}, then bin on x and y.
-export function bin(outputs = {fill: "count"}, {inset, insetTop, insetRight, insetBottom, insetLeft, ...options} = {}) {
+export function bin(outputs = {fill: "count"}, options = {}) {
+  ([outputs, options] = mergeOptions(outputs, options));
   const {x, y} = maybeBinValueTuple(options);
-  ([insetTop, insetBottom] = maybeInset(inset, insetTop, insetBottom));
-  ([insetLeft, insetRight] = maybeInset(inset, insetLeft, insetRight));
-  return binn(x, y, null, null, outputs, {inset, insetTop, insetRight, insetBottom, insetLeft, ...options});
+  return binn(x, y, null, null, outputs, maybeInsetX(maybeInsetY(options)));
+}
+
+function maybeDenseInterval(bin, k, options = {}) {
+  return options?.interval == null ? options : bin({[k]: options?.reduce === undefined ? reduceFirst : options.reduce, filter: null}, options);
+}
+
+export function maybeDenseIntervalX(options) {
+  return maybeDenseInterval(binX, "y", options);
+}
+
+export function maybeDenseIntervalY(options) {
+  return maybeDenseInterval(binY, "x", options);
 }
 
 function binn(
@@ -56,24 +67,38 @@ function binn(
   if (gy != null && hasOutput(outputs, "y", "y1", "y2")) gy = null;
 
   // Produce x1, x2, y1, and y2 output channels as appropriate (when binning).
-  const [BX1, setBX1] = maybeLazyChannel(bx);
-  const [BX2, setBX2] = maybeLazyChannel(bx);
-  const [BY1, setBY1] = maybeLazyChannel(by);
-  const [BY2, setBY2] = maybeLazyChannel(by);
+  const [BX1, setBX1] = maybeColumn(bx);
+  const [BX2, setBX2] = maybeColumn(bx);
+  const [BY1, setBY1] = maybeColumn(by);
+  const [BY2, setBY2] = maybeColumn(by);
 
   // Produce x or y output channels as appropriate (when grouping).
   const [k, gk] = gx != null ? [gx, "x"] : gy != null ? [gy, "y"] : [];
-  const [GK, setGK] = maybeLazyChannel(k);
+  const [GK, setGK] = maybeColumn(k);
 
   // Greedily materialize the z, fill, and stroke channels (if channels and not
   // constants) so that we can reference them for subdividing groups without
-  // computing them more than once.
-  const {x, y, z, fill, stroke, ...options} = inputs;
-  const [GZ, setGZ] = maybeLazyChannel(z);
-  const [vfill] = maybeColor(fill);
-  const [vstroke] = maybeColor(stroke);
-  const [GF = fill, setGF] = maybeLazyChannel(vfill);
-  const [GS = stroke, setGS] = maybeLazyChannel(vstroke);
+  // computing them more than once. We also want to consume options that should
+  // only apply to this transform rather than passing them through to the next.
+  const {
+    x,
+    y,
+    z,
+    fill,
+    stroke,
+    x1, x2, // consumed if x is an output
+    y1, y2, // consumed if y is an output
+    domain, // eslint-disable-line no-unused-vars
+    cumulative, // eslint-disable-line no-unused-vars
+    thresholds, // eslint-disable-line no-unused-vars
+    interval, // eslint-disable-line no-unused-vars
+    ...options
+  } = inputs;
+  const [GZ, setGZ] = maybeColumn(z);
+  const [vfill] = maybeColorChannel(fill);
+  const [vstroke] = maybeColorChannel(stroke);
+  const [GF, setGF] = maybeColumn(vfill);
+  const [GS, setGS] = maybeColumn(vstroke);
 
   return {
     ..."z" in inputs && {z: GZ || z},
@@ -84,7 +109,7 @@ function binn(
       const Z = valueof(data, z);
       const F = valueof(data, vfill);
       const S = valueof(data, vstroke);
-      const G = maybeSubgroup(outputs, Z, F, S);
+      const G = maybeSubgroup(outputs, {z: Z, fill: F, stroke: S});
       const groupFacets = [];
       const groupData = [];
       const GK = K && setGK([]);
@@ -111,17 +136,18 @@ function binn(
             for (const [x1, x2, fx] of BX) {
               const bb = fx(g);
               for (const [y1, y2, fy] of BY) {
+                const extent = {x1, x2, y1, y2};
                 const b = fy(bb);
-                if (filter && !filter.reduce(b)) continue;
+                if (filter && !filter.reduce(b, extent)) continue;
                 groupFacet.push(i++);
-                groupData.push(reduceData.reduce(b, data));
+                groupData.push(reduceData.reduce(b, data, extent));
                 if (K) GK.push(k);
                 if (Z) GZ.push(G === Z ? f : Z[b[0]]);
                 if (F) GF.push(G === F ? f : F[b[0]]);
                 if (S) GS.push(G === S ? f : S[b[0]]);
                 if (BX1) BX1.push(x1), BX2.push(x2);
                 if (BY1) BY1.push(y1), BY2.push(y2);
-                for (const o of outputs) o.reduce(b);
+                for (const o of outputs) o.reduce(b, extent);
                 if (sort) sort.reduce(b);
               }
             }
@@ -132,24 +158,30 @@ function binn(
       maybeSort(groupFacets, sort, reverse);
       return {data: groupData, facets: groupFacets};
     }),
-    ...BX1 ? {x1: BX1, x2: BX2, x: mid(BX1, BX2)} : {x},
-    ...BY1 ? {y1: BY1, y2: BY2, y: mid(BY1, BY2)} : {y},
+    ...!hasOutput(outputs, "x") && (BX1 ? {x1: BX1, x2: BX2, x: mid(BX1, BX2)} : {x, x1, x2}),
+    ...!hasOutput(outputs, "y") && (BY1 ? {y1: BY1, y2: BY2, y: mid(BY1, BY2)} : {y, y1, y2}),
     ...GK && {[gk]: GK},
     ...Object.fromEntries(outputs.map(({name, output}) => [name, output]))
   };
 }
 
-function maybeBinValue(value, {cumulative, domain, thresholds} = {}, defaultValue) {
+// Allow bin options to be specified as part of outputs; merge them into options.
+function mergeOptions({cumulative, domain, thresholds, interval, ...outputs}, options) {
+  return [outputs, {cumulative, domain, thresholds, interval, ...options}];
+}
+
+function maybeBinValue(value, {cumulative, domain, thresholds, interval}, defaultValue) {
   value = {...maybeValue(value)};
   if (value.domain === undefined) value.domain = domain;
   if (value.cumulative === undefined) value.cumulative = cumulative;
   if (value.thresholds === undefined) value.thresholds = thresholds;
+  if (value.interval === undefined) value.interval = interval;
   if (value.value === undefined) value.value = defaultValue;
-  value.thresholds = maybeThresholds(value.thresholds);
+  value.thresholds = maybeThresholds(value.thresholds, value.interval);
   return value;
 }
 
-function maybeBinValueTuple(options = {}) {
+function maybeBinValueTuple(options) {
   let {x, y} = options;
   x = maybeBinValue(x, options);
   y = maybeBinValue(y, options);
@@ -161,13 +193,14 @@ function maybeBin(options) {
   if (options == null) return;
   const {value, cumulative, domain = extent, thresholds} = options;
   const bin = data => {
-    const V = valueof(data, value);
+    let V = valueof(data, value, Array); // d3.bin prefers Array input
     const bin = binner().value(i => V[i]);
-    if (isTemporal(V)) {
+    if (isTemporal(V) || isTimeThresholds(thresholds)) {
+      V = V.map(coerceDate);
       let [min, max] = typeof domain === "function" ? domain(V) : domain;
-      let t = typeof thresholds === "function" && !isTimeInterval(thresholds) ? thresholds(V, min, max) : thresholds;
+      let t = typeof thresholds === "function" && !isInterval(thresholds) ? thresholds(V, min, max) : thresholds;
       if (typeof t === "number") t = utcTickInterval(min, max, t);
-      if (isTimeInterval(t)) {
+      if (isInterval(t)) {
         if (domain === extent) {
           min = t.floor(min);
           max = t.ceil(new Date(+max + 1));
@@ -176,7 +209,19 @@ function maybeBin(options) {
       }
       bin.thresholds(t).domain([min, max]);
     } else {
-      bin.thresholds(thresholds).domain(domain);
+      V = V.map(coerceNumber);
+      let d = domain;
+      let t = thresholds;
+      if (isInterval(t)) {
+        let [min, max] = typeof d === "function" ? d(V) : d;
+        if (d === extent) {
+          min = t.floor(min);
+          max = t.offset(t.floor(max));
+          d = [min, max];
+        }
+        t = t.range(min, max);
+      }
+      bin.thresholds(t).domain(d);
     }
     let bins = bin(range(data)).map(binset);
     if (cumulative) bins = (cumulative < 0 ? bins.reverse() : bins).map(bincumset);
@@ -186,7 +231,10 @@ function maybeBin(options) {
   return bin;
 }
 
-function maybeThresholds(thresholds = thresholdAuto) {
+function maybeThresholds(thresholds, interval) {
+  if (thresholds === undefined) {
+    return interval === undefined ? thresholdAuto : maybeRangeInterval(interval);
+  }
   if (typeof thresholds === "string") {
     switch (thresholds.toLowerCase()) {
       case "freedman-diaconis": return thresholdFreedmanDiaconis;
@@ -194,26 +242,32 @@ function maybeThresholds(thresholds = thresholdAuto) {
       case "sturges": return thresholdSturges;
       case "auto": return thresholdAuto;
     }
-    throw new Error("invalid thresholds");
+    throw new Error(`invalid thresholds: ${thresholds}`);
   }
   return thresholds; // pass array, count, or function to bin.thresholds
+}
+
+// Unlike the interval transform, we require a range method, too.
+function maybeRangeInterval(interval) {
+  interval = maybeInterval(interval);
+  if (!isInterval(interval)) throw new Error(`invalid interval: ${interval}`);
+  return interval;
 }
 
 function thresholdAuto(values, min, max) {
   return Math.min(200, thresholdScott(values, min, max));
 }
 
-function isTimeInterval(t) {
-  return t ? typeof t.range === "function" : false;
+function isTimeThresholds(t) {
+  return isTimeInterval(t) || t && t[Symbol.iterator] && isTemporal(t);
 }
 
-function hasOutput(outputs, ...names) {
-  for (const {name} of outputs) {
-    if (names.includes(name)) {
-      return true;
-    }
-  }
-  return false;
+function isTimeInterval(t) {
+  return isInterval(t) && typeof t === "function" && t() instanceof Date;
+}
+
+function isInterval(t) {
+  return t ? typeof t.range === "function" : false;
 }
 
 function binset(bin) {
@@ -250,10 +304,4 @@ function binfilter([{x0, x1}, set]) {
 
 function binempty() {
   return new Uint32Array(0);
-}
-
-function maybeInset(inset, inset1, inset2) {
-  return inset === undefined && inset1 === undefined && inset2 === undefined
-    ? (offset ? [1, 0] : [0.5, 0.5])
-    : [inset1, inset2];
 }

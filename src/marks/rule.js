@@ -1,10 +1,12 @@
 import {create} from "d3";
-import {filter} from "../defined.js";
-import {Mark, identity, number} from "../mark.js";
+import {identity, number} from "../options.js";
+import {Mark} from "../plot.js";
 import {isCollapsed} from "../scales.js";
-import {applyDirectStyles, applyIndirectStyles, applyTransform, applyChannelStyles} from "../style.js";
+import {applyDirectStyles, applyIndirectStyles, applyTransform, applyChannelStyles, offset} from "../style.js";
+import {maybeIntervalX, maybeIntervalY} from "../transforms/interval.js";
 
 const defaults = {
+  ariaLabel: "rule",
   fill: null,
   stroke: "currentColor"
 };
@@ -32,23 +34,23 @@ export class RuleX extends Mark {
     this.insetTop = number(insetTop);
     this.insetBottom = number(insetBottom);
   }
-  render(I, {x, y}, channels, dimensions) {
+  render(index, {x, y}, channels, dimensions) {
     const {x: X, y1: Y1, y2: Y2} = channels;
     const {width, height, marginTop, marginRight, marginLeft, marginBottom} = dimensions;
-    const {insetTop, insetBottom} = this;
-    const index = filter(I, X, Y1, Y2);
+    const {insetTop, insetBottom, dx, dy} = this;
     return create("svg:g")
-        .call(applyIndirectStyles, this)
-        .call(applyTransform, X && x, null, 0.5, 0)
-        .call(g => g.selectAll("line")
+        .call(applyIndirectStyles, this, dimensions)
+        .call(applyTransform, X && x, null, offset + dx, dy)
+        .call(g => g.selectAll()
           .data(index)
-          .join("line")
+          .enter()
+          .append("line")
             .call(applyDirectStyles, this)
             .attr("x1", X ? i => X[i] : (marginLeft + width - marginRight) / 2)
             .attr("x2", X ? i => X[i] : (marginLeft + width - marginRight) / 2)
             .attr("y1", Y1 && !isCollapsed(y) ? i => Y1[i] + insetTop : marginTop + insetTop)
             .attr("y2", Y2 && !isCollapsed(y) ? (y.bandwidth ? i => Y2[i] + y.bandwidth() - insetBottom : i => Y2[i] - insetBottom) : height - marginBottom - insetBottom)
-            .call(applyChannelStyles, channels))
+            .call(applyChannelStyles, this, channels))
       .node();
   }
 }
@@ -76,35 +78,37 @@ export class RuleY extends Mark {
     this.insetRight = number(insetRight);
     this.insetLeft = number(insetLeft);
   }
-  render(I, {x, y}, channels, dimensions) {
+  render(index, {x, y}, channels, dimensions) {
     const {y: Y, x1: X1, x2: X2} = channels;
     const {width, height, marginTop, marginRight, marginLeft, marginBottom} = dimensions;
-    const {insetLeft, insetRight} = this;
-    const index = filter(I, Y, X1, X2);
+    const {insetLeft, insetRight, dx, dy} = this;
     return create("svg:g")
-        .call(applyIndirectStyles, this)
-        .call(applyTransform, null, Y && y, 0, 0.5)
-        .call(g => g.selectAll("line")
+        .call(applyIndirectStyles, this, dimensions)
+        .call(applyTransform, null, Y && y, dx, offset + dy)
+        .call(g => g.selectAll()
           .data(index)
-          .join("line")
+          .enter()
+          .append("line")
             .call(applyDirectStyles, this)
             .attr("x1", X1 && !isCollapsed(x) ? i => X1[i] + insetLeft : marginLeft + insetLeft)
             .attr("x2", X2 && !isCollapsed(x) ? (x.bandwidth ? i => X2[i] + x.bandwidth() - insetRight : i => X2[i] - insetRight) : width - marginRight - insetRight)
             .attr("y1", Y ? i => Y[i] : (marginTop + height - marginBottom) / 2)
             .attr("y2", Y ? i => Y[i] : (marginTop + height - marginBottom) / 2)
-            .call(applyChannelStyles, channels))
+            .call(applyChannelStyles, this, channels))
       .node();
   }
 }
 
-export function ruleX(data, {x = identity, y, y1, y2, ...options} = {}) {
+export function ruleX(data, options) {
+  let {x = identity, y, y1, y2, ...rest} = maybeIntervalY(options);
   ([y1, y2] = maybeOptionalZero(y, y1, y2));
-  return new RuleX(data, {...options, x, y1, y2});
+  return new RuleX(data, {...rest, x, y1, y2});
 }
 
-export function ruleY(data, {y = identity, x, x1, x2, ...options} = {}) {
+export function ruleY(data, options) {
+  let {y = identity, x, x1, x2, ...rest} = maybeIntervalX(options);
   ([x1, x2] = maybeOptionalZero(x, x1, x2));
-  return new RuleY(data, {...options, y, x1, x2});
+  return new RuleY(data, {...rest, y, x1, x2});
 }
 
 // For marks specified either as [0, x] or [x1, x2], or nothing.

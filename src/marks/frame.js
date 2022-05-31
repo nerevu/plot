@@ -1,8 +1,10 @@
 import {create} from "d3";
-import {Mark, number} from "../mark.js";
-import {applyDirectStyles, applyIndirectStyles, applyTransform} from "../style.js";
+import {Mark} from "../plot.js";
+import {number} from "../options.js";
+import {applyDirectStyles, applyIndirectStyles, applyTransform, offset} from "../style.js";
 
 const defaults = {
+  ariaLabel: "frame",
   fill: "none",
   stroke: "currentColor"
 };
@@ -24,11 +26,11 @@ export class Frame extends Mark {
   }
   render(I, scales, channels, dimensions) {
     const {marginTop, marginRight, marginBottom, marginLeft, width, height} = dimensions;
-    const {insetTop, insetRight, insetBottom, insetLeft} = this;
+    const {insetTop, insetRight, insetBottom, insetLeft, dx, dy} = this;
     return create("svg:rect")
-        .call(applyIndirectStyles, this)
+        .call(applyIndirectStyles, this, dimensions)
         .call(applyDirectStyles, this)
-        .call(applyTransform, null, null, 0.5, 0.5)
+        .call(applyTransform, null, null, offset + dx, offset + dy)
         .attr("x", marginLeft + insetLeft)
         .attr("y", marginTop + insetTop)
         .attr("width", width - marginLeft - marginRight - insetLeft - insetRight)

@@ -11,7 +11,8 @@ export default async function() {
     },
     color: {
       domain: "NLB",
-      range: ["currentColor", "peru", "brown"]
+      range: ["currentColor", "peru", "brown"],
+      legend: true
     },
     marks: [
       Plot.text([[1, "3"]], {
@@ -29,7 +30,7 @@ export default async function() {
       }),
       Plot.text(caltrain, Plot.stackX2({
         filter: d => d.orientation === "N",
-        x: () => 1,
+        x: 1,
         y: "hours",
         text: d => d.minutes.padStart(2, "0"),
         fill: "type",
@@ -37,7 +38,7 @@ export default async function() {
       })),
       Plot.text(caltrain, Plot.stackX2({
         filter: d => d.orientation === "S",
-        x: () => -1,
+        x: -1,
         y: "hours",
         text: d => d.minutes.padStart(2, "0"),
         fill: "type",

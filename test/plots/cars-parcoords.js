@@ -23,7 +23,7 @@ export default async function() {
   const xy = Plot.normalizeX("extent", {x: "value", y: "dimension", z: "dimension"});
 
   return Plot.plot({
-    marginLeft: 100,
+    marginLeft: 104,
     marginRight: 20,
     x: {
       axis: null
@@ -37,8 +37,7 @@ export default async function() {
     marks: [
       Plot.ruleY(dimensions),
       Plot.line(data, {...xy, z: "name", stroke: "#444", strokeWidth: 0.5, strokeOpacity: 0.5}),
-      Plot.text(ticks, {...xy, fill: null, stroke: "white", strokeWidth: 3, strokeLinejoin: "round", text: "value"}),
-      Plot.text(ticks, {...xy, text: "value"})
+      Plot.text(ticks, {...xy, text: "value", fill: "black", stroke: "white"})
     ]
   });
 }

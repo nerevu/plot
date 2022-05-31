@@ -1,5 +1,5 @@
-import {group} from "d3";
-import {maybeZ, take, valueof, maybeInput, lazyChannel} from "../mark.js";
+import {count, group, rank} from "d3";
+import {maybeZ, take, valueof, maybeInput, column} from "../options.js";
 import {basic} from "./basic.js";
 
 export function mapX(m, options = {}) {
@@ -19,7 +19,7 @@ export function map(outputs = {}, options = {}) {
   const channels = Object.entries(outputs).map(([key, map]) => {
     const input = maybeInput(key, options);
     if (input == null) throw new Error(`missing channel: ${key}`);
-    const [output, setOutput] = lazyChannel(input);
+    const [output, setOutput] = column(input);
     return {key, input, output, setOutput, map: maybeMap(map)};
   });
   return {
@@ -41,17 +41,24 @@ export function map(outputs = {}, options = {}) {
 function maybeMap(map) {
   if (map && typeof map.map === "function") return map;
   if (typeof map === "function") return mapFunction(map);
-  switch ((map + "").toLowerCase()) {
+  switch (`${map}`.toLowerCase()) {
     case "cumsum": return mapCumsum;
+    case "rank": return mapFunction(rank);
+    case "quantile": return mapFunction(rankQuantile);
   }
-  throw new Error("invalid map");
+  throw new Error(`invalid map: ${map}`);
+}
+
+function rankQuantile(V) {
+  const n = count(V) - 1;
+  return rank(V).map(r => r / n);
 }
 
 function mapFunction(f) {
   return {
     map(I, S, T) {
       const M = f(take(S, I));
-      if (M.length !== I.length) throw new Error("mismatched length");
+      if (M.length !== I.length) throw new Error("map function returned a mismatched length");
       for (let i = 0, n = I.length; i < n; ++i) T[I[i]] = M[i];
     }
   };

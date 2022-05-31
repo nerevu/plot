@@ -8,35 +8,32 @@ export default async function() {
     inset: 10,
     x: {
       type: "log",
-      label: "Population →",
-      tickFormat: "~s"
+      label: "Population →"
     },
     y: {
       label: "↑ Inequality"
     },
     color: {
-      type: "diverging",
-      reverse: true,
+      scheme: "BuRd",
       symmetric: false
     },
     marks: [
-      Plot.link(data, {
+      Plot.arrow(data, {
         x1: "POP_1980",
         y1: "R90_10_1980",
         x2: "POP_2015",
         y2: "R90_10_2015",
+        bend: true,
         stroke: d => d.R90_10_2015 - d.R90_10_1980
-      }),
-      Plot.dot(data, {
-        x: "POP_2015",
-        y: "R90_10_2015",
-        r: 1
       }),
       Plot.text(data, {
         x: "POP_2015",
         y: "R90_10_2015",
-        text: d => d.highlight && d.nyt_display,
-        dy: -6
+        filter: "highlight",
+        text: "nyt_display",
+        fill: "currentColor",
+        stroke: "white",
+        dy: -8
       })
     ]
   });

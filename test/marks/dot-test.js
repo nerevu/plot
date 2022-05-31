@@ -18,8 +18,13 @@ it("dot() has the expected defaults", () => {
   assert.strictEqual(dot.strokeLinecap, undefined);
   assert.strictEqual(dot.strokeMiterlimit, undefined);
   assert.strictEqual(dot.strokeDasharray, undefined);
+  assert.strictEqual(dot.strokeDashoffset, undefined);
   assert.strictEqual(dot.mixBlendMode, undefined);
   assert.strictEqual(dot.shapeRendering, undefined);
+});
+
+it("dot accepts undefined data", () => {
+  Plot.dot({length: 1}).initialize();
 });
 
 it("dot(data, {r}) allows r to be a constant radius", () => {

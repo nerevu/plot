@@ -15,12 +15,10 @@ export default async function() {
     },
     y: {
       type: "log",
-      label: "↑ Total number of votes",
-      tickFormat: "~s"
+      label: "↑ Total number of votes"
     },
     color: {
-      type: "diverging",
-      reverse: true,
+      scheme: "BuRd",
       symmetric: false
     },
     marks: [

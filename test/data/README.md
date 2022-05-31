@@ -35,9 +35,29 @@ https://covid19.healthdata.org/
 D3 Community Survey, 2015
 https://github.com/enjalot/d3surveys
 
+## decathlon.csv
+Sample of decathlon dataset from JMP Statistical Discovery (http://www.jmp.com).
+https://github.com/hemanrobinson/preattentive/blob/a58dd4795d0ee063a38a2d7bf33812d969ca6256/src/Data.js#L5598-L5650
+
 ## diamonds.csv
 ggplot2 “diamonds” dataset (carat and price columns only)
 https://github.com/tidyverse/ggplot2/blob/master/data-raw/diamonds.csv
+
+## driving.csv
+Based on Hannah Fairfield’s Driving Shifts Into Reverse
+https://archive.nytimes.com/www.nytimes.com/imagepages/2010/05/02/business/02metrics.html
+
+## download.csv
+Daily downloads of the npm “@observablehq/cars” package
+https://observablehq.com/@mbostock/npm-daily-downloads?name=@observablehq/cars
+
+## energy-production.csv
+U.S. Energy Information Administration; monthly energy review, primary energy production by source, Jan. 2022
+https://www.eia.gov/totalenergy/data/monthly/index.php
+
+## flare.csv
+Flare visualization toolkit package hierarchy
+https://observablehq.com/@d3/treemap
 
 ## gistemp.csv
 NASA Goddard Institute for Space Studies
@@ -82,6 +102,14 @@ https://www.ncdc.noaa.gov/
 IMDb/Todd W. Schneider
 https://data.world/data-society/the-simpsons-by-the-data
 
+## survey.csv
+Eitan Lees
+https://talk.observablehq.com/t/diverging-stacked-bar-chart-in-plot/6028
+
+## traffic.csv
+Moritz Klack
+https://observablehq.com/@moklick
+
 ## travelers.csv
 TSA
 https://www.tsa.gov/coronavirus/passenger-throughput
@@ -89,6 +117,11 @@ https://www.tsa.gov/coronavirus/passenger-throughput
 ## us-population-state-age.csv
 U.S. Census Bureau
 https://observablehq.com/@d3/barcode-plot
+
+## us-president-favorability.csv
+YouGov (polling data) and Wikipedia (presidential portraits)
+https://today.yougov.com/topics/politics/articles-reports/2021/07/27/most-and-least-popular-us-presidents-according-ame
+https://en.wikipedia.org/wiki/List_of_presidents_of_the_United_States
 
 ## us-presidential-election-2020.csv
 Fabio Votta/Edison Research/NYT
@@ -101,3 +134,9 @@ https://www.census.gov/retail/mrts/historic_releases.html
 ## us-state-population-2010-2019.csv
 U.S. Census Bureau (?)
 https://observablehq.com/@d3/diverging-bar-chart
+
+## wealth-britain.csv
+U.K. Office for National Statistics
+A recreation of “Who owns Britain?” by Richard Speigal; proportion plot chart type by Stephanie Evergreen
+https://www.linkedin.com/feed/update/urn:li:activity:6758306750174138368/
+https://stephanieevergreen.com/proportion-plots/

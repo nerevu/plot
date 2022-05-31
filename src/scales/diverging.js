@@ -1,87 +1,130 @@
 import {
+  interpolateNumber,
   interpolateRgb,
   piecewise,
-  reverse as reverseof,
   scaleDiverging,
   scaleDivergingLog,
   scaleDivergingPow,
-  scaleDivergingSqrt,
   scaleDivergingSymlog
 } from "d3";
 import {positive, negative} from "../defined.js";
 import {quantitativeScheme} from "./schemes.js";
 import {registry, color} from "./index.js";
-import {inferDomain, Interpolator} from "./quantitative.js";
+import {inferDomain, Interpolator, flip, interpolatePiecewise} from "./quantitative.js";
 
 function ScaleD(key, scale, transform, channels, {
+  type,
   nice,
   clamp,
   domain = inferDomain(channels),
+  unknown,
   pivot = 0,
+  scheme,
   range,
-  scheme = "rdbu",
   symmetric = true,
-  interpolate = registry.get(key) === color ? (range !== undefined ? interpolateRgb : quantitativeScheme(scheme)) : undefined,
+  interpolate = registry.get(key) === color ? (scheme == null && range !== undefined ? interpolateRgb : quantitativeScheme(scheme !== undefined ? scheme : "rdbu")) : interpolateNumber,
   reverse
 }) {
-  domain = [Math.min(domain[0], pivot), pivot, Math.max(domain[1], pivot)];
-  if (reverse = !!reverse) domain = reverseof(domain);
+  pivot = +pivot;
+  let [min, max] = domain;
+  min = Math.min(min, pivot);
+  max = Math.max(max, pivot);
 
-  // Sometimes interpolator is named interpolator, such as "lab" for Lab color
-  // space; other times it is a function that takes t in [0, 1].
-  if (interpolate !== undefined && typeof interpolate !== "function") {
+  // Sometimes interpolate is a named interpolator, such as "lab" for Lab color
+  // space. Other times interpolate is a function that takes two arguments and
+  // is used in conjunction with the range. And other times the interpolate
+  // function is a “fixed” interpolator on the [0, 1] interval, as when a
+  // color scheme such as interpolateRdBu is used.
+  if (typeof interpolate !== "function") {
     interpolate = Interpolator(interpolate);
   }
 
   // If an explicit range is specified, promote it to a piecewise interpolator.
-  if (range !== undefined) interpolate = piecewise(interpolate, range);
+  if (range !== undefined) {
+    interpolate = interpolate.length === 1
+      ? interpolatePiecewise(interpolate)(...range)
+      : piecewise(interpolate, range);
+  }
+
+  // Reverse before normalization.
+  if (reverse) interpolate = flip(interpolate);
 
   // Normalize the interpolator for symmetric difference around the pivot.
   if (symmetric) {
-    const mindelta = Math.abs(transform(domain[0]) - transform(pivot));
-    const maxdelta = Math.abs(transform(domain[2]) - transform(pivot));
-    if (mindelta < maxdelta) interpolate = truncateLower(interpolate, mindelta / maxdelta);
-    else if (mindelta > maxdelta) interpolate = truncateUpper(interpolate, maxdelta / mindelta);
+    const mid = transform.apply(pivot);
+    const mindelta = mid - transform.apply(min);
+    const maxdelta = transform.apply(max) - mid;
+    if (mindelta < maxdelta) min = transform.invert(mid - maxdelta);
+    else if (mindelta > maxdelta) max = transform.invert(mid + mindelta);
   }
 
-  scale.domain(domain).interpolator(interpolate);
+  scale.domain([min, pivot, max]).unknown(unknown).interpolator(interpolate);
   if (clamp) scale.clamp(clamp);
   if (nice) scale.nice(nice);
-  return {type: "quantitative", reverse, domain, scale};
+  return {type, domain: [min, max], pivot, interpolate, scale};
 }
 
 export function ScaleDiverging(key, channels, options) {
-  return ScaleD(key, scaleDiverging(), x => x, channels, options);
+  return ScaleD(key, scaleDiverging(), transformIdentity, channels, options);
 }
 
 export function ScaleDivergingSqrt(key, channels, options) {
-  return ScaleD(key, scaleDivergingSqrt(), Math.sqrt, channels, options);
+  return ScaleDivergingPow(key, channels, {...options, exponent: 0.5});
 }
 
 export function ScaleDivergingPow(key, channels, {exponent = 1, ...options}) {
-  return ScaleD(key, scaleDivergingPow().exponent(exponent), transformPow(exponent), channels, options);
+  return ScaleD(key, scaleDivergingPow().exponent(exponent = +exponent), transformPow(exponent), channels, {...options, type: "diverging-pow"});
 }
 
 export function ScaleDivergingLog(key, channels, {base = 10, pivot = 1, domain = inferDomain(channels, pivot < 0 ? negative : positive), ...options}) {
-  return ScaleD(key, scaleDivergingLog().base(base), Math.log, channels, {domain, pivot, ...options});
+  return ScaleD(key, scaleDivergingLog().base(base = +base), transformLog, channels, {domain, pivot, ...options});
 }
 
 export function ScaleDivergingSymlog(key, channels, {constant = 1, ...options}) {
-  return ScaleD(key, scaleDivergingSymlog().constant(constant), transformSymlog(constant), channels, options);
+  return ScaleD(key, scaleDivergingSymlog().constant(constant = +constant), transformSymlog(constant), channels, options);
 }
 
-function truncateLower(interpolate, k) {
-  return t => interpolate(t < 0.5 ? t * k + (1 - k) / 2 : t);
-}
+const transformIdentity = {
+  apply(x) {
+    return x;
+  },
+  invert(x) {
+    return x;
+  }
+};
 
-function truncateUpper(interpolate, k) {
-  return t => interpolate(t > 0.5 ? t * k + (1 - k) / 2 : t);
-}
+const transformLog = {
+  apply: Math.log,
+  invert: Math.exp
+};
+
+const transformSqrt = {
+  apply(x) {
+    return Math.sign(x) * Math.sqrt(Math.abs(x));
+  },
+  invert(x) {
+    return Math.sign(x) * (x * x);
+  }
+};
 
 function transformPow(exponent) {
-  return x => Math.sign(x) * Math.pow(Math.abs(x), exponent);
+  return exponent === 0.5 ? transformSqrt : {
+    apply(x) {
+      return Math.sign(x) * Math.pow(Math.abs(x), exponent);
+    },
+    invert(x) {
+      return Math.sign(x) * Math.pow(Math.abs(x), 1 / exponent);
+    }
+  };
 }
 
 function transformSymlog(constant) {
-  return x => Math.sign(x) * Math.log1p(Math.abs(x / constant));
+  return {
+    apply(x) {
+      return Math.sign(x) * Math.log1p(Math.abs(x / constant));
+    },
+    invert(x) {
+      return Math.sign(x) * Math.expm1(Math.abs(x)) * constant;
+    }
+  };
 }

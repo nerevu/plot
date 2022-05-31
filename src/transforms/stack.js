@@ -1,93 +1,75 @@
-import {InternMap, cumsum, group, groupSort, greatest, rollup, sum, min} from "d3";
+import {InternMap, cumsum, group, groupSort, greatest, max, min, rollup, sum} from "d3";
 import {ascendingDefined} from "../defined.js";
-import {field, lazyChannel, maybeLazyChannel, maybeZ, mid, range, valueof, identity, maybeZero, isOptions, maybeValue} from "../mark.js";
+import {field, column, maybeColumn, maybeZ, mid, range, valueof, maybeZero, one} from "../options.js";
 import {basic} from "./basic.js";
 
 export function stackX(stackOptions = {}, options = {}) {
-  if (arguments.length === 1) options = mergeOptions(stackOptions);
+  if (arguments.length === 1) ([stackOptions, options] = mergeOptions(stackOptions));
   const {y1, y = y1, x, ...rest} = options; // note: consumes x!
   const [transform, Y, x1, x2] = stack(y, x, "x", stackOptions, rest);
   return {...transform, y1, y: Y, x1, x2, x: mid(x1, x2)};
 }
 
 export function stackX1(stackOptions = {}, options = {}) {
-  if (arguments.length === 1) options = mergeOptions(stackOptions);
+  if (arguments.length === 1) ([stackOptions, options] = mergeOptions(stackOptions));
   const {y1, y = y1, x} = options;
   const [transform, Y, X] = stack(y, x, "x", stackOptions, options);
   return {...transform, y1, y: Y, x: X};
 }
 
 export function stackX2(stackOptions = {}, options = {}) {
-  if (arguments.length === 1) options = mergeOptions(stackOptions);
+  if (arguments.length === 1) ([stackOptions, options] = mergeOptions(stackOptions));
   const {y1, y = y1, x} = options;
   const [transform, Y,, X] = stack(y, x, "x", stackOptions, options);
   return {...transform, y1, y: Y, x: X};
 }
 
 export function stackY(stackOptions = {}, options = {}) {
-  if (arguments.length === 1) options = mergeOptions(stackOptions);
+  if (arguments.length === 1) ([stackOptions, options] = mergeOptions(stackOptions));
   const {x1, x = x1, y, ...rest} = options; // note: consumes y!
   const [transform, X, y1, y2] = stack(x, y, "y", stackOptions, rest);
   return {...transform, x1, x: X, y1, y2, y: mid(y1, y2)};
 }
 
 export function stackY1(stackOptions = {}, options = {}) {
-  if (arguments.length === 1) options = mergeOptions(stackOptions);
+  if (arguments.length === 1) ([stackOptions, options] = mergeOptions(stackOptions));
   const {x1, x = x1, y} = options;
   const [transform, X, Y] = stack(x, y, "y", stackOptions, options);
   return {...transform, x1, x: X, y: Y};
 }
 
 export function stackY2(stackOptions = {}, options = {}) {
-  if (arguments.length === 1) options = mergeOptions(stackOptions);
+  if (arguments.length === 1) ([stackOptions, options] = mergeOptions(stackOptions));
   const {x1, x = x1, y} = options;
   const [transform, X,, Y] = stack(x, y, "y", stackOptions, options);
   return {...transform, x1, x: X, y: Y};
 }
 
 export function maybeStackX({x, x1, x2, ...options} = {}) {
-  options = aliasSort(options, "x");
-  if (x1 === undefined && x2 == undefined) {
-    if (x === undefined) x = identity;
-    return stackX({x, ...options});
-  }
+  if (x1 === undefined && x2 === undefined) return stackX({x, ...options});
   ([x1, x2] = maybeZero(x, x1, x2));
   return {...options, x1, x2};
 }
 
 export function maybeStackY({y, y1, y2, ...options} = {}) {
-  options = aliasSort(options, "y");
-  if (y1 === undefined && y2 == undefined) {
-    if (y === undefined) y = identity;
-    return stackY({y, ...options});
-  }
+  if (y1 === undefined && y2 === undefined) return stackY({y, ...options});
   ([y1, y2] = maybeZero(y, y1, y2));
   return {...options, y1, y2};
-}
-
-function aliasSort(options, name) {
-  let {sort} = options;
-  if (!isOptions(sort)) return options;
-  for (const x in sort) {
-    const {value: y, ...rest} = maybeValue(sort[x]);
-    if (y === name) sort = {...sort, [x]: {value: `${y}2`, ...rest}};
-  }
-  return {...options, sort};
 }
 
 // The reverse option is ambiguous: it is both a stack option and a basic
 // transform. If only one options object is specified, we interpret it as a
 // stack option, and therefore must remove it from the propagated options.
 function mergeOptions(options) {
-  const {reverse} = options;
-  return reverse ? {...options, reverse: false} : options;
+  const {offset, order, reverse, ...rest} = options;
+  return [{offset, order, reverse}, rest];
 }
 
-function stack(x, y = () => 1, ky, {offset, order, reverse}, options) {
+function stack(x, y = one, ky, {offset, order, reverse}, options) {
   const z = maybeZ(options);
-  const [X, setX] = maybeLazyChannel(x);
-  const [Y1, setY1] = lazyChannel(y);
-  const [Y2, setY2] = lazyChannel(y);
+  const [X, setX] = maybeColumn(x);
+  const [Y1, setY1] = column(y);
+  const [Y2, setY2] = column(y);
   offset = maybeOffset(offset);
   order = maybeOrder(order, offset, ky);
   return [
@@ -99,6 +81,7 @@ function stack(x, y = () => 1, ky, {offset, order, reverse}, options) {
       const n = data.length;
       const Y1 = setY1(new Float64Array(n));
       const Y2 = setY2(new Float64Array(n));
+      const facetstacks = [];
       for (const facet of facets) {
         const stacks = X ? Array.from(group(facet, i => X[i]).values()) : [facet];
         if (O) applyOrder(stacks, O);
@@ -112,8 +95,9 @@ function stack(x, y = () => 1, ky, {offset, order, reverse}, options) {
             else Y2[i] = Y1[i] = yp; // NaN or zero
           }
         }
-        if (offset) offset(stacks, Y1, Y2, Z);
+        facetstacks.push(stacks);
       }
+      if (offset) offset(facetstacks, Y1, Y2, Z);
       return {data, facets};
     }),
     X,
@@ -124,7 +108,8 @@ function stack(x, y = () => 1, ky, {offset, order, reverse}, options) {
 
 function maybeOffset(offset) {
   if (offset == null) return;
-  switch ((offset + "").toLowerCase()) {
+  if (typeof offset === "function") return offset;
+  switch (`${offset}`.toLowerCase()) {
     case "expand": case "normalize": return offsetExpand;
     case "center": case "silhouette": return offsetCenter;
     case "wiggle": return offsetWiggle;
@@ -145,51 +130,59 @@ function extent(stack, Y2) {
   return [min, max];
 }
 
-function offsetExpand(stacks, Y1, Y2) {
-  for (const stack of stacks) {
-    const [yn, yp] = extent(stack, Y2);
-    for (const i of stack) {
-      const m = 1 / (yp - yn || 1);
-      Y1[i] = m * (Y1[i] - yn);
-      Y2[i] = m * (Y2[i] - yn);
+function offsetExpand(facetstacks, Y1, Y2) {
+  for (const stacks of facetstacks) {
+    for (const stack of stacks) {
+      const [yn, yp] = extent(stack, Y2);
+      for (const i of stack) {
+        const m = 1 / (yp - yn || 1);
+        Y1[i] = m * (Y1[i] - yn);
+        Y2[i] = m * (Y2[i] - yn);
+      }
     }
   }
 }
 
-function offsetCenter(stacks, Y1, Y2) {
-  for (const stack of stacks) {
-    const [yn, yp] = extent(stack, Y2);
-    for (const i of stack) {
-      const m = (yp + yn) / 2;
-      Y1[i] -= m;
-      Y2[i] -= m;
+function offsetCenter(facetstacks, Y1, Y2) {
+  for (const stacks of facetstacks) {
+    for (const stack of stacks) {
+      const [yn, yp] = extent(stack, Y2);
+      for (const i of stack) {
+        const m = (yp + yn) / 2;
+        Y1[i] -= m;
+        Y2[i] -= m;
+      }
     }
+    offsetZero(stacks, Y1, Y2);
   }
-  offsetZero(stacks, Y1, Y2);
+  offsetCenterFacets(facetstacks, Y1, Y2);
 }
 
-function offsetWiggle(stacks, Y1, Y2, Z) {
-  const prev = new InternMap();
-  let y = 0;
-  for (const stack of stacks) {
-    let j = -1;
-    const Fi = stack.map(i => Math.abs(Y2[i] - Y1[i]));
-    const Df = stack.map(i => {
-      j = Z ? Z[i] : ++j;
-      const value = Y2[i] - Y1[i];
-      const diff = prev.has(j) ? value - prev.get(j) : 0;
-      prev.set(j, value);
-      return diff;
-    });
-    const Cf1 = [0, ...cumsum(Df)];
-    for (const i of stack) {
-      Y1[i] += y;
-      Y2[i] += y;
+function offsetWiggle(facetstacks, Y1, Y2, Z) {
+  for (const stacks of facetstacks) {
+    const prev = new InternMap();
+    let y = 0;
+    for (const stack of stacks) {
+      let j = -1;
+      const Fi = stack.map(i => Math.abs(Y2[i] - Y1[i]));
+      const Df = stack.map(i => {
+        j = Z ? Z[i] : ++j;
+        const value = Y2[i] - Y1[i];
+        const diff = prev.has(j) ? value - prev.get(j) : 0;
+        prev.set(j, value);
+        return diff;
+      });
+      const Cf1 = [0, ...cumsum(Df)];
+      for (const i of stack) {
+        Y1[i] += y;
+        Y2[i] += y;
+      }
+      const s1 = sum(Fi);
+      if (s1) y -= sum(Fi, (d, i) => (Df[i] / 2 + Cf1[i]) * d) / s1;
     }
-    const s1 = sum(Fi);
-    if (s1) y -= sum(Fi, (d, i) => (Df[i] / 2 + Cf1[i]) * d) / s1;
+    offsetZero(stacks, Y1, Y2);
   }
-  offsetZero(stacks, Y1, Y2);
+  offsetCenterFacets(facetstacks, Y1, Y2);
 }
 
 function offsetZero(stacks, Y1, Y2) {
@@ -198,6 +191,21 @@ function offsetZero(stacks, Y1, Y2) {
     for (const i of stack) {
       Y1[i] -= m;
       Y2[i] -= m;
+    }
+  }
+}
+
+function offsetCenterFacets(facetstacks, Y1, Y2) {
+  const n = facetstacks.length;
+  if (n === 1) return;
+  const facets = facetstacks.map(stacks => stacks.flat());
+  const m = facets.map(I => (min(I, i => Y1[i]) + max(I, i => Y2[i])) / 2);
+  const m0 = min(m);
+  for (let j = 0; j < n; j++) {
+    const p = m0 - m[j];
+    for (const i of facets[j]) {
+      Y1[i] += p;
+      Y2[i] += p;
     }
   }
 }
@@ -217,7 +225,7 @@ function maybeOrder(order, offset, ky) {
   }
   if (typeof order === "function") return orderFunction(order);
   if (Array.isArray(order)) return orderGiven(order);
-  throw new Error("invalid order");
+  throw new Error(`invalid order: ${order}`);
 }
 
 // by value

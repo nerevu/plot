@@ -103,7 +103,7 @@ const ordinalSchemes = new Map([
 
   // reversed diverging (for temperature data)
   ["burd", scheme11r(schemeRdBu, interpolateRdBu)],
-  ["buylrd", scheme11r(schemeRdGy, interpolateRdGy)],
+  ["buylrd", scheme11r(schemeRdYlBu, interpolateRdYlBu)],
 
   // sequential (single-hue)
   ["blues", scheme9(schemeBlues, interpolateBlues)],
@@ -137,13 +137,15 @@ const ordinalSchemes = new Map([
   ["ylorrd", scheme9(schemeYlOrRd, interpolateYlOrRd)],
 
   // cyclical
-  ["rainbow", schemei(interpolateRainbow)],
-  ["sinebow", schemei(interpolateSinebow)]
+  ["rainbow", schemeicyclical(interpolateRainbow)],
+  ["sinebow", schemeicyclical(interpolateSinebow)]
 ]);
 
 function scheme9(scheme, interpolate) {
   return ({length: n}) => {
-    n = n > 3 ? Math.floor(n) : 3;
+    if (n === 1) return [scheme[3][1]]; // favor midpoint
+    if (n === 2) return [scheme[3][1], scheme[3][2]]; // favor darker
+    n = Math.max(3, Math.floor(n));
     return n > 9 ? quantize(interpolate, n) : scheme[n];
   };
 }
@@ -151,27 +153,29 @@ function scheme9(scheme, interpolate) {
 function scheme11(scheme, interpolate) {
   return ({length: n}) => {
     if (n === 2) return [scheme[3][0], scheme[3][2]]; // favor diverging extrema
-    n = n > 3 ? Math.floor(n) : 3;
+    n = Math.max(3, Math.floor(n));
     return n > 11 ? quantize(interpolate, n) : scheme[n];
   };
 }
 
 function scheme11r(scheme, interpolate) {
   return ({length: n}) => {
-    if (n === 2) return [scheme[3][0], scheme[3][2]]; // favor diverging extrema
-    n = n > 3 ? Math.floor(n) : 3;
+    if (n === 2) return [scheme[3][2], scheme[3][0]]; // favor diverging extrema
+    n = Math.max(3, Math.floor(n));
     return n > 11 ? quantize(t => interpolate(1 - t), n) : scheme[n].slice().reverse();
   };
 }
 
 function schemei(interpolate) {
-  return ({length: n}) => {
-    return quantize(interpolate, n > 0 ? Math.floor(n) : 0);
-  };
+  return ({length: n}) => quantize(interpolate, Math.max(2, Math.floor(n)));
+}
+
+function schemeicyclical(interpolate) {
+  return ({length: n}) => quantize(interpolate, Math.floor(n) + 1).slice(0, -1);
 }
 
 export function ordinalScheme(scheme) {
-  const s = (scheme + "").toLowerCase();
+  const s = `${scheme}`.toLowerCase();
   if (!ordinalSchemes.has(s)) throw new Error(`unknown scheme: ${s}`);
   return ordinalSchemes.get(s);
 }
@@ -179,7 +183,22 @@ export function ordinalScheme(scheme) {
 export function ordinalRange(scheme, length) {
   const s = ordinalScheme(scheme);
   const r = typeof s === "function" ? s({length}) : s;
-  return r.length !== length ? r.slice(length) : r;
+  return r.length !== length ? r.slice(0, length) : r;
+}
+
+// If the specified domain contains only booleans (ignoring null and undefined),
+// returns a corresponding range where false is mapped to the low color and true
+// is mapped to the high color of the specified scheme.
+export function maybeBooleanRange(domain, scheme = "greys") {
+  const range = new Set();
+  const [f, t] = ordinalRange(scheme, 2);
+  for (const value of domain) {
+    if (value == null) continue;
+    if (value === true) range.add(t);
+    else if (value === false) range.add(f);
+    else return;
+  }
+  return [...range];
 }
 
 const quantitativeSchemes = new Map([
@@ -235,7 +254,25 @@ const quantitativeSchemes = new Map([
 ]);
 
 export function quantitativeScheme(scheme) {
-  const s = (scheme + "").toLowerCase();
+  const s = `${scheme}`.toLowerCase();
   if (!quantitativeSchemes.has(s)) throw new Error(`unknown scheme: ${s}`);
   return quantitativeSchemes.get(s);
+}
+
+const divergingSchemes = new Set([
+  "brbg",
+  "prgn",
+  "piyg",
+  "puor",
+  "rdbu",
+  "rdgy",
+  "rdylbu",
+  "rdylgn",
+  "spectral",
+  "burd",
+  "buylrd"
+]);
+
+export function isDivergingScheme(scheme) {
+  return scheme != null && divergingSchemes.has(`${scheme}`.toLowerCase());
 }

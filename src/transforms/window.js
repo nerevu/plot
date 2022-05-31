@@ -1,5 +1,7 @@
 import {mapX, mapY} from "./map.js";
 import {deviation, max, min, median, mode, variance} from "d3";
+import {warn} from "../warnings.js";
+import {percentile} from "../options.js";
 
 export function windowX(windowOptions = {}, options) {
   if (arguments.length === 1) options = windowOptions;
@@ -11,35 +13,38 @@ export function windowY(windowOptions = {}, options) {
   return mapY(window(windowOptions), options);
 }
 
-function window(options = {}) {
+export function window(options = {}) {
   if (typeof options === "number") options = {k: options};
-  let {k, reduce, shift, anchor = maybeShift(shift)} = options;
-  if (!((k = Math.floor(k)) > 0)) throw new Error("invalid k");
+  let {k, reduce, shift, anchor} = options;
+  if (anchor === undefined && shift !== undefined) {
+    anchor = maybeShift(shift);
+    warn(`Warning: the shift option is deprecated; please use anchor "${anchor}" instead.`);
+  }
+  if (!((k = Math.floor(k)) > 0)) throw new Error(`invalid k: ${k}`);
   return maybeReduce(reduce)(k, maybeAnchor(anchor, k));
 }
 
 function maybeAnchor(anchor = "middle", k) {
-  switch ((anchor + "").toLowerCase()) {
+  switch (`${anchor}`.toLowerCase()) {
     case "middle": return (k - 1) >> 1;
     case "start": return 0;
     case "end": return k - 1;
   }
-  throw new Error("invalid anchor");
+  throw new Error(`invalid anchor: ${anchor}`);
 }
 
 function maybeShift(shift) {
-  if (shift === undefined) return;
-  console.warn("shift is deprecated; please use anchor instead");
-  switch ((shift + "").toLowerCase()) {
+  switch (`${shift}`.toLowerCase()) {
     case "centered": return "middle";
     case "leading": return "start";
     case "trailing": return "end";
   }
-  throw new Error("invalid shift");
+  throw new Error(`invalid shift: ${shift}`);
 }
 
 function maybeReduce(reduce = "mean") {
   if (typeof reduce === "string") {
+    if (/^p\d{2}$/i.test(reduce)) return reduceSubarray(percentile(reduce));
     switch (reduce.toLowerCase()) {
       case "deviation": return reduceSubarray(deviation);
       case "max": return reduceSubarray(max);
@@ -51,9 +56,11 @@ function maybeReduce(reduce = "mean") {
       case "variance": return reduceSubarray(variance);
       case "difference": return reduceDifference;
       case "ratio": return reduceRatio;
+      case "first": return reduceFirst;
+      case "last": return reduceLast;
     }
   }
-  if (typeof reduce !== "function") throw new Error("invalid reduce");
+  if (typeof reduce !== "function") throw new Error(`invalid reduce: ${reduce}`);
   return reduceSubarray(reduce);
 }
 
@@ -126,6 +133,26 @@ function reduceRatio(k, s) {
         const a = S[I[i]];
         const b = S[I[i + k - 1]];
         T[I[i + s]] = a === null || b === null ? NaN : b / a;
+      }
+    }
+  };
+}
+
+function reduceFirst(k, s) {
+  return {
+    map(I, S, T) {
+      for (let i = 0, n = I.length - k; i < n; ++i) {
+        T[I[i + s]] = S[I[i]];
+      }
+    }
+  };
+}
+
+function reduceLast(k, s) {
+  return {
+    map(I, S, T) {
+      for (let i = 0, n = I.length - k; i < n; ++i) {
+        T[I[i + s]] = S[I[i + k - 1]];
       }
     }
   };

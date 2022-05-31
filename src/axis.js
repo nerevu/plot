@@ -1,6 +1,8 @@
 import {axisTop, axisBottom, axisRight, axisLeft, create, format, utcFormat} from "d3";
+import {boolean, take, number, string, keyword, maybeKeyword, constant, isTemporal} from "./options.js";
 import {formatIsoDate} from "./format.js";
-import {boolean, take, number, string, keyword, maybeKeyword, constant, isTemporal} from "./mark.js";
+import {radians} from "./math.js";
+import {applyAttr, impliedString} from "./style.js";
 
 export class AxisX {
   constructor({
@@ -10,30 +12,35 @@ export class AxisX {
     tickSize = name === "fx" ? 0 : 6,
     tickPadding = tickSize === 0 ? 9 : 3,
     tickFormat,
+    fontVariant,
     grid,
     label,
     labelAnchor,
     labelOffset,
     line,
-    tickRotate
+    tickRotate,
+    ariaLabel,
+    ariaDescription
   } = {}) {
     this.name = name;
     this.axis = keyword(axis, "axis", ["top", "bottom"]);
-    this.ticks = ticks;
+    this.ticks = maybeTicks(ticks);
     this.tickSize = number(tickSize);
     this.tickPadding = number(tickPadding);
-    this.tickFormat = tickFormat;
+    this.tickFormat = maybeTickFormat(tickFormat);
+    this.fontVariant = impliedString(fontVariant, "normal");
     this.grid = boolean(grid);
     this.label = string(label);
     this.labelAnchor = maybeKeyword(labelAnchor, "labelAnchor", ["center", "left", "right"]);
     this.labelOffset = number(labelOffset);
     this.line = boolean(line);
     this.tickRotate = number(tickRotate);
+    this.ariaLabel = string(ariaLabel);
+    this.ariaDescription = string(ariaDescription);
   }
   render(
     index,
     {[this.name]: x, fy},
-    channels,
     {
       width,
       height,
@@ -41,6 +48,7 @@ export class AxisX {
       marginRight,
       marginBottom,
       marginLeft,
+      offsetLeft = 0,
       facetMarginTop,
       facetMarginBottom,
       labelMarginLeft = 0,
@@ -49,22 +57,26 @@ export class AxisX {
   ) {
     const {
       axis,
+      fontVariant,
       grid,
       label,
       labelAnchor,
       labelOffset,
       line,
+      name,
       tickRotate
     } = this;
-    const offset = this.name === "x" ? 0 : axis === "top" ? marginTop - facetMarginTop : marginBottom - facetMarginBottom;
+    const offset = name === "x" ? 0 : axis === "top" ? marginTop - facetMarginTop : marginBottom - facetMarginBottom;
     const offsetSign = axis === "top" ? -1 : 1;
     const ty = offsetSign * offset + (axis === "top" ? marginTop : height - marginBottom);
     return create("svg:g")
-        .attr("transform", `translate(0,${ty})`)
+        .call(applyAria, this)
+        .attr("transform", `translate(${offsetLeft},${ty})`)
         .call(createAxis(axis === "top" ? axisTop : axisBottom, x, this))
         .call(maybeTickRotate, tickRotate)
         .attr("font-size", null)
         .attr("font-family", null)
+        .attr("font-variant", fontVariant)
         .call(!line ? g => g.select(".domain").remove() : () => {})
         .call(!grid ? () => {}
           : fy ? gridFacetX(index, fy, -ty)
@@ -93,30 +105,35 @@ export class AxisY {
     tickSize = name === "fy" ? 0 : 6,
     tickPadding = tickSize === 0 ? 9 : 3,
     tickFormat,
+    fontVariant,
     grid,
     label,
     labelAnchor,
     labelOffset,
     line,
-    tickRotate
+    tickRotate,
+    ariaLabel,
+    ariaDescription
   } = {}) {
     this.name = name;
     this.axis = keyword(axis, "axis", ["left", "right"]);
-    this.ticks = ticks;
+    this.ticks = maybeTicks(ticks);
     this.tickSize = number(tickSize);
     this.tickPadding = number(tickPadding);
-    this.tickFormat = tickFormat;
+    this.tickFormat = maybeTickFormat(tickFormat);
+    this.fontVariant = impliedString(fontVariant, "normal");
     this.grid = boolean(grid);
     this.label = string(label);
     this.labelAnchor = maybeKeyword(labelAnchor, "labelAnchor", ["center", "top", "bottom"]);
     this.labelOffset = number(labelOffset);
     this.line = boolean(line);
     this.tickRotate = number(tickRotate);
+    this.ariaLabel = string(ariaLabel);
+    this.ariaDescription = string(ariaDescription);
   }
   render(
     index,
     {[this.name]: y, fx},
-    channels,
     {
       width,
       height,
@@ -124,28 +141,33 @@ export class AxisY {
       marginRight,
       marginBottom,
       marginLeft,
+      offsetTop = 0,
       facetMarginLeft,
       facetMarginRight
     }
   ) {
     const {
       axis,
+      fontVariant,
       grid,
       label,
       labelAnchor,
       labelOffset,
       line,
+      name,
       tickRotate
     } = this;
-    const offset = this.name === "y" ? 0 : axis === "left" ? marginLeft - facetMarginLeft : marginRight - facetMarginRight;
+    const offset = name === "y" ? 0 : axis === "left" ? marginLeft - facetMarginLeft : marginRight - facetMarginRight;
     const offsetSign = axis === "left" ? -1 : 1;
     const tx = offsetSign * offset + (axis === "right" ? width - marginRight : marginLeft);
     return create("svg:g")
-        .attr("transform", `translate(${tx},0)`)
+        .call(applyAria, this)
+        .attr("transform", `translate(${tx},${offsetTop})`)
         .call(createAxis(axis === "right" ? axisRight : axisLeft, y, this))
         .call(maybeTickRotate, tickRotate)
         .attr("font-size", null)
         .attr("font-family", null)
+        .attr("font-variant", fontVariant)
         .call(!line ? g => g.select(".domain").remove() : () => {})
         .call(!grid ? () => {}
           : fx ? gridFacetY(index, fx, -tx)
@@ -166,6 +188,16 @@ export class AxisY {
             .text(label))
       .node();
   }
+}
+
+function applyAria(selection, {
+  name,
+  label,
+  ariaLabel = `${name}-axis`,
+  ariaDescription = label
+}) {
+  applyAttr(selection, "aria-label", ariaLabel);
+  applyAttr(selection, "aria-description", ariaDescription);
 }
 
 function gridX(y2) {
@@ -202,14 +234,27 @@ function gridFacetY(index, fx, tx) {
       .attr("d", (index ? take(domain, index) : domain).map(v => `M${fx(v) + tx},0h${dx}`).join(""));
 }
 
-function createAxis(axis, scale, {ticks, tickSize, tickPadding, tickFormat}) {
-  if (!scale.tickFormat && typeof tickFormat !== "function") {
-    // D3 doesn’t provide a tick format for ordinal scales; we want shorthand
-    // when an ordinal domain is numbers or dates, and we want null to mean the
-    // empty string, not the default identity format.
-    tickFormat = tickFormat === undefined ? (isTemporal(scale.domain()) ? formatIsoDate : string)
-      : (typeof tickFormat === "string" ? (isTemporal(scale.domain()) ? utcFormat : format)
+function maybeTicks(ticks) {
+  return ticks === null ? [] : ticks;
+}
+
+function maybeTickFormat(tickFormat) {
+  return tickFormat === null ? () => null : tickFormat;
+}
+
+// D3 doesn’t provide a tick format for ordinal scales; we want shorthand when
+// an ordinal domain is numbers or dates, and we want null to mean the empty
+// string, not the default identity format.
+export function maybeAutoTickFormat(tickFormat, domain) {
+  return tickFormat === undefined ? (isTemporal(domain) ? formatIsoDate : string)
+      : typeof tickFormat === "function" ? tickFormat
+      : (typeof tickFormat === "string" ? (isTemporal(domain) ? utcFormat : format)
       : constant)(tickFormat);
+}
+
+function createAxis(axis, scale, {ticks, tickSize, tickPadding, tickFormat}) {
+  if (!scale.tickFormat) {
+    tickFormat = maybeAutoTickFormat(tickFormat, scale.domain());
   }
   return axis(scale)
     .ticks(Array.isArray(ticks) ? null : ticks, typeof tickFormat === "function" ? null : tickFormat)
@@ -222,21 +267,20 @@ function createAxis(axis, scale, {ticks, tickSize, tickPadding, tickFormat}) {
 
 function maybeTickRotate(g, rotate) {
   if (!(rotate = +rotate)) return;
-  const radians = Math.PI / 180;
-  const labels = g.selectAll("text").attr("dy", "0.32em");
-  const y = +labels.attr("y");
-  if (y) {
-    const s = Math.sign(y);
-    labels
-      .attr("y", null)
-      .attr("transform", `translate(0, ${y + s * 4 * Math.cos(rotate * radians)}) rotate(${rotate})`)
-      .attr("text-anchor", Math.abs(rotate) < 10 ? "middle" : (rotate < 0) ^ (s > 0) ? "start" : "end");
-  } else {
-    const x = +labels.attr("x");
-    const s = Math.sign(x);
-    labels
-      .attr("x", null)
-      .attr("transform", `translate(${x + s * 4 * Math.abs(Math.sin(rotate * radians))}, 0) rotate(${rotate})`)
-      .attr("text-anchor", Math.abs(rotate) > 60 ? "middle" : s > 0 ? "start" : "end");
+  for (const text of g.selectAll("text")) {
+    const x = +text.getAttribute("x");
+    const y = +text.getAttribute("y");
+    if (Math.abs(y) > Math.abs(x)) {
+      const s = Math.sign(y);
+      text.setAttribute("transform", `translate(0, ${y + s * 4 * Math.cos(rotate * radians)}) rotate(${rotate})`);
+      text.setAttribute("text-anchor", Math.abs(rotate) < 10 ? "middle" : (rotate < 0) ^ (s > 0) ? "start" : "end");
+    } else {
+      const s = Math.sign(x);
+      text.setAttribute("transform", `translate(${x + s * 4 * Math.abs(Math.sin(rotate * radians))}, 0) rotate(${rotate})`);
+      text.setAttribute("text-anchor", Math.abs(rotate) > 60 ? "middle" : s > 0 ? "start" : "end");
+    }
+    text.removeAttribute("x");
+    text.removeAttribute("y");
+    text.setAttribute("dy", "0.32em");
   }
 }

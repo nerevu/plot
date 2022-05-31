@@ -1,11 +1,15 @@
 import {create} from "d3";
-import {filter} from "../defined.js";
-import {Mark, number} from "../mark.js";
+import {identity, indexOf, number} from "../options.js";
+import {Mark} from "../plot.js";
 import {isCollapsed} from "../scales.js";
 import {applyDirectStyles, applyIndirectStyles, applyTransform, impliedString, applyAttr, applyChannelStyles} from "../style.js";
+import {maybeIdentityX, maybeIdentityY} from "../transforms/identity.js";
+import {maybeTrivialIntervalX, maybeTrivialIntervalY} from "../transforms/interval.js";
 import {maybeStackX, maybeStackY} from "../transforms/stack.js";
 
-const defaults = {};
+const defaults = {
+  ariaLabel: "rect"
+};
 
 export class Rect extends Mark {
   constructor(data, options = {}) {
@@ -40,17 +44,17 @@ export class Rect extends Mark {
     this.rx = impliedString(rx, "auto"); // number or percentage
     this.ry = impliedString(ry, "auto");
   }
-  render(I, {x, y}, channels, dimensions) {
+  render(index, {x, y}, channels, dimensions) {
     const {x1: X1, y1: Y1, x2: X2, y2: Y2} = channels;
     const {marginTop, marginRight, marginBottom, marginLeft, width, height} = dimensions;
-    const {insetTop, insetRight, insetBottom, insetLeft, rx, ry} = this;
-    const index = filter(I, X1, Y2, X2, Y2);
+    const {insetTop, insetRight, insetBottom, insetLeft, dx, dy, rx, ry} = this;
     return create("svg:g")
-        .call(applyIndirectStyles, this)
-        .call(applyTransform, x, y)
+        .call(applyIndirectStyles, this, dimensions)
+        .call(applyTransform, X1 && X2 ? x : null, Y1 && Y2 ? y : null, dx, dy)
         .call(g => g.selectAll()
           .data(index)
-          .join("rect")
+          .enter()
+          .append("rect")
             .call(applyDirectStyles, this)
             .attr("x", X1 && X2 && !isCollapsed(x) ? i => Math.min(X1[i], X2[i]) + insetLeft : marginLeft + insetLeft)
             .attr("y", Y1 && Y2 && !isCollapsed(y) ? i => Math.min(Y1[i], Y2[i]) + insetTop : marginTop + insetTop)
@@ -58,19 +62,19 @@ export class Rect extends Mark {
             .attr("height", Y1 && Y2 && !isCollapsed(y) ? i => Math.max(0, Math.abs(Y1[i] - Y2[i]) - insetTop - insetBottom) : height - marginTop - marginBottom - insetTop - insetBottom)
             .call(applyAttr, "rx", rx)
             .call(applyAttr, "ry", ry)
-            .call(applyChannelStyles, channels))
+            .call(applyChannelStyles, this, channels))
       .node();
   }
 }
 
 export function rect(data, options) {
-  return new Rect(data, options);
+  return new Rect(data, maybeTrivialIntervalX(maybeTrivialIntervalY(options)));
 }
 
-export function rectX(data, options) {
-  return new Rect(data, maybeStackX(options));
+export function rectX(data, options = {y: indexOf, interval: 1, x2: identity}) {
+  return new Rect(data, maybeStackX(maybeTrivialIntervalY(maybeIdentityX(options))));
 }
 
-export function rectY(data, options) {
-  return new Rect(data, maybeStackY(options));
+export function rectY(data, options = {x: indexOf, interval: 1, y2: identity}) {
+  return new Rect(data, maybeStackY(maybeTrivialIntervalX(maybeIdentityY(options))));
 }

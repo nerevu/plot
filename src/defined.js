@@ -13,28 +13,17 @@ export function descendingDefined(a, b) {
 }
 
 export function nonempty(x) {
-  return x != null && (x + "") !== "";
+  return x != null && `${x}` !== "";
 }
 
-export function filter(index, ...channels) {
-  for (const c of channels) {
-    if (c) index = index.filter(i => defined(c[i]));
-  }
-  return index;
+export function finite(x) {
+  return isFinite(x) ? x : NaN;
 }
 
 export function positive(x) {
-  return x > 0 ? x : NaN;
+  return x > 0 && isFinite(x) ? x : NaN;
 }
 
 export function negative(x) {
-  return x < 0 ? x : NaN;
-}
-
-export function firstof(...values) {
-  for (const v of values) {
-    if (v !== undefined) {
-      return v;
-    }
-  }
+  return x < 0 && isFinite(x) ? x : NaN;
 }

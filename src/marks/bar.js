@@ -1,14 +1,14 @@
 import {create} from "d3";
-import {filter} from "../defined.js";
-import {Mark, number} from "../mark.js";
+import {Mark} from "../plot.js";
+import {identity, indexOf, number} from "../options.js";
 import {isCollapsed} from "../scales.js";
 import {applyDirectStyles, applyIndirectStyles, applyTransform, impliedString, applyAttr, applyChannelStyles} from "../style.js";
+import {maybeIdentityX, maybeIdentityY} from "../transforms/identity.js";
+import {maybeIntervalX, maybeIntervalY} from "../transforms/interval.js";
 import {maybeStackX, maybeStackY} from "../transforms/stack.js";
 
-const defaults = {};
-
 export class AbstractBar extends Mark {
-  constructor(data, channels, options = {}) {
+  constructor(data, channels, options = {}, defaults) {
     super(data, channels, options, defaults);
     const {inset = 0, insetTop = inset, insetRight = inset, insetBottom = inset, insetLeft = inset, rx, ry} = options;
     this.insetTop = number(insetTop);
@@ -18,15 +18,15 @@ export class AbstractBar extends Mark {
     this.rx = impliedString(rx, "auto"); // number or percentage
     this.ry = impliedString(ry, "auto");
   }
-  render(I, scales, channels, dimensions) {
-    const {rx, ry} = this;
-    const index = filter(I, ...this._positions(channels));
+  render(index, scales, channels, dimensions) {
+    const {dx, dy, rx, ry} = this;
     return create("svg:g")
-        .call(applyIndirectStyles, this)
-        .call(this._transform, scales)
+        .call(applyIndirectStyles, this, dimensions)
+        .call(this._transform, scales, dx, dy)
         .call(g => g.selectAll()
           .data(index)
-          .join("rect")
+          .enter()
+          .append("rect")
             .call(applyDirectStyles, this)
             .attr("x", this._x(scales, channels, dimensions))
             .attr("width", this._width(scales, channels, dimensions))
@@ -34,7 +34,7 @@ export class AbstractBar extends Mark {
             .attr("height", this._height(scales, channels, dimensions))
             .call(applyAttr, "rx", rx)
             .call(applyAttr, "ry", ry)
-            .call(applyChannelStyles, channels))
+            .call(applyChannelStyles, this, channels))
       .node();
   }
   _x(scales, {x: X}, {marginLeft}) {
@@ -57,6 +57,10 @@ export class AbstractBar extends Mark {
   }
 }
 
+const defaults = {
+  ariaLabel: "bar"
+};
+
 export class BarX extends AbstractBar {
   constructor(data, options = {}) {
     const {x1, x2, y} = options;
@@ -67,14 +71,12 @@ export class BarX extends AbstractBar {
         {name: "x2", value: x2, scale: "x"},
         {name: "y", value: y, scale: "y", type: "band", optional: true}
       ],
-      options
+      options,
+      defaults
     );
   }
-  _transform(selection, {x}) {
-    selection.call(applyTransform, x, null);
-  }
-  _positions({x1: X1, x2: X2, y: Y}) {
-    return [X1, X2, Y];
+  _transform(selection, {x}, dx, dy) {
+    selection.call(applyTransform, x, null, dx, dy);
   }
   _x({x}, {x1: X1, x2: X2}, {marginLeft}) {
     const {insetLeft} = this;
@@ -96,14 +98,12 @@ export class BarY extends AbstractBar {
         {name: "y2", value: y2, scale: "y"},
         {name: "x", value: x, scale: "x", type: "band", optional: true}
       ],
-      options
+      options,
+      defaults
     );
   }
-  _transform(selection, {y}) {
-    selection.call(applyTransform, null, y);
-  }
-  _positions({y1: Y1, y2: Y2, x: X}) {
-    return [Y1, Y2, X];
+  _transform(selection, {y}, dx, dy) {
+    selection.call(applyTransform, null, y, dx, dy);
   }
   _y({y}, {y1: Y1, y2: Y2}, {marginTop}) {
     const {insetTop} = this;
@@ -115,10 +115,10 @@ export class BarY extends AbstractBar {
   }
 }
 
-export function barX(data, options) {
-  return new BarX(data, maybeStackX(options));
+export function barX(data, options = {y: indexOf, x2: identity}) {
+  return new BarX(data, maybeStackX(maybeIntervalX(maybeIdentityX(options))));
 }
 
-export function barY(data, options) {
-  return new BarY(data, maybeStackY(options));
+export function barY(data, options = {x: indexOf, y2: identity}) {
+  return new BarY(data, maybeStackY(maybeIntervalY(maybeIdentityY(options))));
 }
