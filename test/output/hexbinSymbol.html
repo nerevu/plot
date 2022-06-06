@@ -11,6 +11,12 @@
         margin-left: 0px;
       }
 
+      .plot-title {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.4em;
+      }
+
       .plot-swatch>svg {
         width: var(--swatchWidth);
         height: var(--swatchHeight);
@@ -23,9 +29,9 @@
         stroke-opacity: 1;
       }
 
-      .plot {
+      .plot-palette {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         min-height: 33px;
         flex-wrap: wrap;
       }
@@ -35,13 +41,14 @@
         align-items: center;
         margin-right: 1em;
       }
-    </style><span class="plot-swatch"><svg viewBox="-8 -8 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-        <path d="M4.5,0A4.5,4.5,0,1,1,-4.5,0A4.5,4.5,0,1,1,4.5,0"></path>
-      </svg>FEMALE</span><span class="plot-swatch"><svg viewBox="-8 -8 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-        <path d="M-6.873088769818877,0L6.873088769818877,0M0,6.873088769818877L0,-6.873088769818877"></path>
-      </svg>MALE</span><span class="plot-swatch"><svg viewBox="-8 -8 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-        <path d="M-4.869970345289333,-4.869970345289333L4.869970345289333,4.869970345289333M-4.869970345289333,4.869970345289333L4.869970345289333,-4.869970345289333"></path>
-      </svg>null</span>
+    </style>
+    <div class="plot-palette"><span class="plot-swatch"><svg viewBox="-8 -8 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <path d="M4.5,0A4.5,4.5,0,1,1,-4.5,0A4.5,4.5,0,1,1,4.5,0"></path>
+        </svg>FEMALE</span><span class="plot-swatch"><svg viewBox="-8 -8 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <path d="M-6.873088769818877,0L6.873088769818877,0M0,6.873088769818877L0,-6.873088769818877"></path>
+        </svg>MALE</span><span class="plot-swatch"><svg viewBox="-8 -8 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <path d="M-4.869970345289333,-4.869970345289333L4.869970345289333,4.869970345289333M-4.869970345289333,4.869970345289333L4.869970345289333,-4.869970345289333"></path>
+        </svg>null</span></div>
   </div><svg class="plot-2" fill="currentColor" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle" width="640" height="400" viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <style>
       .plot-2 {
