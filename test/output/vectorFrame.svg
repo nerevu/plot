@@ -12,6 +12,10 @@
     .plot tspan {
       white-space: pre;
     }
+
+    .plot a {
+      fill: inherit;
+    }
   </style>
   <rect aria-label="frame" fill="none" stroke="currentColor" transform="translate(0.5,0.5)" x="0" y="0" width="199" height="199"></rect>
   <g fill="none" aria-label="vector" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" transform="translate(-9.5,10.5)">

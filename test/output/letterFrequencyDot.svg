@@ -12,6 +12,10 @@
     .plot tspan {
       white-space: pre;
     }
+
+    .plot a {
+      fill: inherit;
+    }
   </style>
   <g aria-label="x-axis" aria-description="letter" transform="translate(0,30)" fill="none" text-anchor="middle">
     <g class="tick" opacity="1" transform="translate(33.5,0)">

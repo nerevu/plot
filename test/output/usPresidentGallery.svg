@@ -12,6 +12,10 @@
     .plot tspan {
       white-space: pre;
     }
+
+    .plot a {
+      fill: inherit;
+    }
   </style>
   <g aria-label="x-axis" aria-description="First Inauguration Date →" transform="translate(0,270)" fill="none" text-anchor="middle" font-variant="tabular-nums">
     <g class="tick" opacity="1" transform="translate(90.10820454652867,0)">

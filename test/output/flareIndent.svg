@@ -12,6 +12,10 @@
     .plot tspan {
       white-space: pre;
     }
+
+    .plot a {
+      fill: inherit;
+    }
   </style>
   <g aria-label="link" fill="none" stroke-opacity="0.5" stroke-miterlimit="1" transform="translate(0.5,0.5)">
     <path d="M10,10L10,24L27,24" stroke="#636363"></path>

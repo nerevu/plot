@@ -152,6 +152,9 @@ export function plot(options = {}) {
         .${className} tspan {
           white-space: pre;
         }
+        .${className} a {
+          fill: inherit;
+        }
       `))
       .call(applyInlineStyles, style)
     .node();

@@ -12,6 +12,10 @@
     .plot tspan {
       white-space: pre;
     }
+
+    .plot a {
+      fill: inherit;
+    }
   </style>
   <g aria-label="x-axis" aria-description="weight (lb) →" transform="translate(0,170)" fill="none" text-anchor="middle" font-variant="tabular-nums">
     <path class="domain" stroke="currentColor" d="M20.5,0.5H620.5"></path>

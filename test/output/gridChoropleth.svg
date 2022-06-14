@@ -12,6 +12,10 @@
     .plot tspan {
       white-space: pre;
     }
+
+    .plot a {
+      fill: inherit;
+    }
   </style>
   <g aria-label="cell">
     <rect x="10" width="47" y="212" height="46" fill="rgb(190, 226, 146)"></rect>
