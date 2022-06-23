@@ -51,6 +51,9 @@
   },
   "dependencies": {
     "d3": "^7.3.0",
+    "d3-scale": "github:nerevu/d3-scale#7965621",
+    "d3-time": "github:nerevu/d3-time#5716013",
+    "dayjs": "^1.11.2",
     "interval-tree-1d": "1",
     "isoformat": "0.2"
   },

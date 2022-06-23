@@ -1,13 +1,19 @@
-import {parse as isoParse} from "isoformat";
 import {isColor, isEvery, isOrdinal, isFirst, isTemporal, isTemporalString, isNumericString, isScaleOptions, isTypedArray, map, order, slice} from "./options.js";
 import {registry, color, position, radius, opacity, symbol, length} from "./scales/index.js";
 import {ScaleLinear, ScaleSqrt, ScalePow, ScaleLog, ScaleSymlog, ScaleQuantile, ScaleQuantize, ScaleThreshold, ScaleIdentity} from "./scales/quantitative.js";
 import {ScaleDiverging, ScaleDivergingSqrt, ScaleDivergingPow, ScaleDivergingLog, ScaleDivergingSymlog} from "./scales/diverging.js";
 import {isDivergingScheme} from "./scales/schemes.js";
-import {ScaleTime, ScaleUtc} from "./scales/temporal.js";
+import {ScaleTime, ScaleUtc, ScaleTimezone} from "./scales/temporal.js";
 import {ScaleOrdinal, ScalePoint, ScaleBand, ordinalImplicit} from "./scales/ordinal.js";
 import {isSymbol, maybeSymbol} from "./symbols.js";
 import {warn} from "./warnings.js";
+
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
+import timezone from 'dayjs/plugin/timezone.js';
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
 
 export function Scales(channelsByScale, {
   inset: globalInset = 0,
@@ -60,6 +66,7 @@ export function Scales(channelsByScale, {
       scales[key] = scale;
     }
   }
+
   return scales;
 }
 
@@ -181,6 +188,7 @@ function Scale(key, channels = [], options = {}) {
         case symbol: options = coerceType(channels, options, coerceSymbols); break;
       }
       break;
+    case "timezone":
     case "utc":
     case "time":
       options = coerceType(channels, options, coerceDates);
@@ -202,6 +210,7 @@ function Scale(key, channels = [], options = {}) {
     case "pow": return ScalePow(key, channels, options);
     case "log": return ScaleLog(key, channels, options);
     case "symlog": return ScaleSymlog(key, channels, options);
+    case "timezone": return ScaleTimezone(key, channels, options);
     case "utc": return ScaleUtc(key, channels, options);
     case "time": return ScaleTime(key, channels, options);
     case "point": return ScalePoint(key, channels, options);
@@ -343,11 +352,11 @@ export function isCollapsed(scale) {
 function coerceType(channels, {domain, ...options}, coerceValues) {
   for (const c of channels) {
     if (c.value !== undefined) {
-      c.value = coerceValues(c.value);
+      c.value = coerceValues(c.value, options);
     }
   }
   return {
-    domain: domain === undefined ? domain : coerceValues(domain),
+    domain: domain === undefined ? domain : coerceValues(domain, options),
     ...options
   };
 }
@@ -356,8 +365,8 @@ function coerceSymbols(values) {
   return map(values, maybeSymbol);
 }
 
-function coerceDates(values) {
-  return map(values, coerceDate);
+function coerceDates(values, { tz }) {
+  return values.map(value => coerceDate(value, { tz }));
 }
 
 // If the values are specified as a typed array, no coercion is required.
@@ -372,17 +381,11 @@ export function coerceNumber(x) {
   return x == null ? NaN : +x;
 }
 
-// When coercing strings to dates, we only want to allow the ISO 8601 format
-// since the built-in string parsing of the Date constructor varies across
-// browsers. (In the future, this could be made more liberal if desired, though
-// it is still generally preferable to do date parsing yourself explicitly,
-// rather than rely on Plot.) Any non-string values are coerced to number first
-// and treated as milliseconds since UNIX epoch.
-export function coerceDate(x) {
-  return x instanceof Date && !isNaN(x) ? x
-    : typeof x === "string" ? isoParse(x)
-    : x == null || isNaN(x = +x) ? undefined
-    : new Date(x);
+// https://day.js.org/docs/en/parse/parse
+// https://day.js.org/docs/en/timezone/parsing-in-zone
+export function coerceDate(x, { tz }) {
+  let result = tz ? dayjs.tz(x, tz) : dayjs(x);
+  return result.isValid() ? result : undefined;
 }
 
 export function scale(options = {}) {
